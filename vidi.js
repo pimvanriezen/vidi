@@ -133,6 +133,14 @@ class VidiView
     constructor(id,model) {
         let self = this;
         
+        for (let varname in model) {
+            if (! varname.match (/^[a-zA-Z0-9_]+$/)) {
+                console.error("[Vidi] model for view '#"+id+"' defines "+
+                              "invalid top-level variable '"+varname+"'");
+                throw new Error("Invalid model");
+            }
+        }
+        
         // Set up private variables
         self.$ = self.querySelector;
         self.$id = id;
@@ -190,11 +198,19 @@ class VidiView
             src += "var "+lid+" = __locals."+lid+";";
         }
         
+        e = e.replace(/[a-zA-Z0-9_]+ *=[^=]/g, function (m) {
+            let varname=m.replace(/ *=.*/,'');
+            if (self.$data[varname] !== undefined) {
+                return "__data."+m;
+            }
+            return m;
+        });
+        
         src += "return ("+e+"); ";
         src += "}})()";
         
         try {
-            return eval(src)(self,self.$data,tempvars);
+            return eval(src)(self,self.view,tempvars);
         }
         catch (e) {
             switch (e.name) {
