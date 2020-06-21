@@ -528,9 +528,15 @@ class VidiView
         }
         
         if (left.nodeType == Node.ELEMENT_NODE) {
+            let lefteventid = left.getAttribute("v-eventid");
+            let righteventid = right.getAttribute("v-eventid");
+            
+            if (lefteventid||righteventid) {
+                if (lefteventid != righteventid) return false;
+            }
+            
             for (let a of left.getAttributeNames()) {
                 if (left.getAttribute(a) !== right.getAttribute(a)) {
-                   return false;
                    if (right.getAttribute(a) === null) {
                         left.removeAttribute(a);
                     }
@@ -541,7 +547,6 @@ class VidiView
             }
             for (let a of right.getAttributeNames()) {
                 if (left.getAttribute(a) !== right.getAttribute(a)) {
-                    return false;
                     if (right.getAttribute(a) === null) {
                         left.removeAttribute(a);
                     }
