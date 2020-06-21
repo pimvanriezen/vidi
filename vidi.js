@@ -176,7 +176,7 @@ class VidiView
     // into a function that gets local references to all the model's listed
     // top-level variables, as well as an optional index and loop variable.
     // ------------------------------------------------------------------------
-    eval(e,tempvars,setproxy) {
+    eval(e,tempvars) {
         let self = this;
         let src = "(function(){ return function(__self,__data,__locals) {";
         for (let id in self.$data) {
@@ -190,26 +190,11 @@ class VidiView
             src += "var "+lid+" = __locals."+lid+";";
         }
         
-        if (setproxy) {
-            src += "/**/" + e + ";  /**/ ";
-            for (let id in self.$data) {
-                let dobj = self.$data[id];
-                
-                if (typeof (dobj) != "object" &&
-                    typeof (dobj) != "function") {
-                    src += "if (__data."+id+" != "+id+") {";
-                    src += "__data."+id+" = "+id+"; }; ";
-                }
-            }
-        }
-        else {
-            src += "return ("+e+"); ";
-        }
-            
+        src += "return ("+e+"); ";
         src += "}})()";
         
         try {
-            return eval(src)(self,setproxy?self.view:self.$data,tempvars);
+            return eval(src)(self,self.$data,tempvars);
         }
         catch (e) {
             switch (e.name) {
@@ -334,6 +319,24 @@ class VidiView
         let self = this;
         let nw = document.createElement(orig.tagName);
         
+        let vcomp = orig.getAttribute("v-component");
+
+        if (vcomp) {
+            let component = Vidi.components[vcomp];
+            if (component) {
+                tempvars.component = component.functions;
+                tempvars.componentName = vcomp;
+                let vinstance = orig.getAttribute ("v-instance");
+                if (vinstance) {
+                    let instance = Vidi.instances[vinstance];
+                    tempvars.instance = {
+                        view: self.view,
+                        attributes: instance.attributes
+                    }
+                }
+            }
+        }
+            
         if (orig.getAttributeNames) {
             for (let a of orig.getAttributeNames()) {
                 let val = orig.getAttribute (a);
@@ -343,30 +346,30 @@ class VidiView
                     switch (attrbase) {
                         case "v-model":
                             let model = val;
-                            let curval = self.eval (model, tempvars);
-                            let tv = Vidi.copy (tempvars);
+                            let curval = self.view[model];
                             nw.value = curval;
                             nw.addEventListener("input", function() {
                                 let newval = nw.value;
                                 if (newval != curval) {
-                                    tv.__event = { value: newval };
-                                    self.eval(model+"=__event.value", tv, true);
+                                    self.view[model] = newval;
                                 }
                             });
                             break;
                         
                         case "v-on":
                             let evname = a.substr(5);
+                            let ontv = Vidi.copy (tempvars);
+                            if (val.indexOf('{{') >= 0) {
+                                val = val.replace(/{{\s?([^}]*)\s?}}/g,
+                                  function(m) {
+                                  let src = m.substr(2,m.length-4);
+                                  return self.eval(src, tempvars);
+                                });
+                            }
+
                             nw.addEventListener(evname, function(e) {
-                                let tv = Vidi.copy (tempvars);
-                                tv.event = e;
-                                if (val.startsWith("{{")) {
-                                    val = val.substr(2,val.length-4);
-                                    self.eval(val, tv, true);
-                                }
-                                else {
-                                    self.eval(val, tv, false);
-                                }
+                                ontv.event = e;
+                                self.eval(val, ontv);
                             });
                             break;
                             
@@ -374,6 +377,15 @@ class VidiView
                             // We really don't need this, but this makes
                             // it easier to port vue projects.
                             let bindto = a.substr(7);
+                            
+                            if (val.indexOf('{{') >= 0) {
+                                val = val.replace(/{{\s?([^}]*)\s?}}/g,
+                                  function(m) {
+                                  let src = m.substr(2,m.length-4);
+                                  return self.eval(src, tempvars);
+                                });
+                            }
+                            
                             val = self.eval (val, tempvars);
                             if (val !== false && val !== undefined) {
                                 if (val === true) {
@@ -386,6 +398,10 @@ class VidiView
                             else if (val === false) {
                                 nw.removeAttribute (bindto);
                             }
+                            break;
+                            
+                        case "v-component":
+                            nw.setAttribute (a, val);
                             break;
                     }
                     
@@ -527,22 +543,6 @@ class VidiView
                 }
             }
             
-            let vcomp = orig.getAttribute ("v-component");
-            if (vcomp) {
-                let component = Vidi.components[vcomp];
-                if (component) {
-                    tempvars.component = component.functions;
-                    let vinstance = orig.getAttribute ("v-instance");
-                    if (vinstance) {
-                        let instance = Vidi.instances[vinstance];
-                        tempvars.instance = {
-                            view: self.view,
-                            attributes: instance.attributes
-                        }
-                    }
-                }
-            }
-
             // Handle the v-for attribute
             let loopfor = orig.getAttribute ("v-for");
             if (loopfor) {
@@ -594,13 +594,18 @@ class VidiView
 // ============================================================================
 class VidiComponent {
     constructor (name, def) {
-        Vidi.components[name] = this;
-
         this.$name = name;
         this.$def = def;
         this.$template = def.template.replace(/^[ \n]*/, "");
         this.functions = def.functions;
         
+        Vidi.components[name] = {
+            "$name": this.$name,
+            "$def": this.$def,
+            "$template": this.$template,
+            "functions": this.functions
+        }
+
         if (document.readyState === "complete") {
             this.render();
         }
@@ -854,6 +859,7 @@ Vidi = {
 Vidi.clone = function(obj) {
     if (null == obj || "object" != typeof obj) return obj;
     var copy;
+    if (typeof (obj) == "function") return obj;
     if (obj.constructor) copy = obj.constructor();
     else {
         console.log ("No constructor:",obj);
@@ -872,6 +878,7 @@ Vidi.clone = function(obj) {
 
 Vidi.copy = function(obj) {
     if (null == obj || "object" != typeof obj) return obj;
+    if (typeof (obj) == "function") return obj;
     var copy = {};
     for (var attr in obj) {
         copy[attr] = obj[attr];

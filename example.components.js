@@ -11,16 +11,15 @@ new Vidi.Component("v-button", {
     },
     template:`
         <button v-on:click="{{attr.cb}}"
-                v-on:setbadge="component.setBadge(instance,event)"
                 class="{{attr.icon?'withicon ':''}}{{attr.class}}"
-                u-badge="{{attr.badge}}"
                 v-bind:disabled="{{makeDisabled(attr)}}"
                 style="{{makeStyle(attr)}}">
             <div style="position:relative;">
                 <span>{{innerhtml}}</span>
             </div>
-            <div component-if="attr.badge" class="badge">
-                    {{makeBadge(attr)}}
+            <div component-if="attr.badge"
+                 v-bind:class="{{attr.badge}}==0?'badge':'badge nonzero'">
+                    {{attr.badge}}
             </div>
         </button>
     `,
@@ -34,30 +33,6 @@ new Vidi.Component("v-button", {
             if (attr.require) {
                 return "!("+attr.require+")";
             }
-        },
-        makeBadge:function(attr) {
-            if (attr.badge) {
-                return '{{'+attr.badge+'}}';
-            }
-            return '0';
-        },
-        setBadge:function(instance,event) {
-            if (! event.detail || event.detail.value === undefined) {
-                return;
-            }
-            let value = event.detail.value;
-            let div = event.target.querySelector(".badge");
-            if (! div) return;
-            
-            if (value) {
-                div.classList.add ("nonzero");
-            }
-            else {
-                div.classList.remove ("nonzero");
-            }
-            div.innerHTML = value;
-            instance.view[instance.attributes.badge] = value;
-            console.log ("Updated badge");
         }
     }
 });
@@ -119,10 +94,19 @@ new Vidi.Component("v-textinput", {
     template:`
         <div>
             <label for="{{attr.id}}">{{innerhtml}}</label>
-            <input name="{{attr.id}}" v-model="{{attr.id}}"/>
+            <input name="{{attr.id}}"
+                   v-on:keyup="component.keyUp(instance,event)"
+                   v-model="{{attr.id}}"/>
         </div>
     `,
-    functions:{}
+    functions:{
+        keyUp:function(instance, event) {
+            if (event.keyCode != 27) return;
+            let model = instance.attributes.id;
+            instance.view[model] = "";
+            event.target.value = "";
+        }
+    }
 });
 
 new Vidi.Component("v-form", {
