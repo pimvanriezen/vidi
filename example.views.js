@@ -1,6 +1,7 @@
 new Vidi.View("user", {
     title:"My page",
     showsecrets:false,
+    secrets:0,
     users:{
         root:{
             name:"System Administrator",
@@ -20,7 +21,6 @@ new Vidi.View("user", {
     },
     newid:"",
     newname:"",
-    secrets:0,
     
     remove:function(id) {
         if (id == "root") {
@@ -28,10 +28,6 @@ new Vidi.View("user", {
             return;
         }
         delete this.view.users[id];
-    },
-    
-    hideSecrets:function() {
-        this.view.showsecrets = false;
     },
     
     add:function() {

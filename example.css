@@ -135,6 +135,11 @@ button:hover
     cursor: pointer;
 }
 
+.clickable:hover
+{
+    cursor: pointer;
+}
+
 button:disabled
 {
     opacity: 0.50;

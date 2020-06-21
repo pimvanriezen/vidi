@@ -1,6 +1,7 @@
 <html lang="en">
 
   <head>
+    <meta charset="utf-8"/>
     <script type="text/javascript" src="vidi.js"></script>
     <script type="text/javascript" src="example.components.js"></script>
     <script type="text/javascript" src="example.views.js"></script>
@@ -10,23 +11,20 @@
   <body>
     <v-view id="user">
       <h1 class="classy">{{title}}</h1>
-      <p v-if="showsecrets">
-        Secret message goes here
-        <v-button badge="{{secrets}}" 
-                  cb="showsecrets=false"
-                  class="black">Hide Secrets</v-button>
-      </p>
 
       <v-table width="100%" max-width="1024"
-               id="users" rows="users">
-        <v-column title="Username" align="left">{{id}}</v-column>
-        <v-column width="20" title="UID" align="right">{{row.uid}}</v-column>
-        <v-column width="*" title="Name" align="left">{{row.name}}</v-column>
+               id="users" rows="users" sort-key="row.uid">
+        <v-column key="id" title="Username"
+                  align="left">{{id}}</v-column>
+        <v-column key="row.uid" width="20" 
+                  title="UID" align="right">{{row.uid}}</v-column>
+        <v-column key="row.name" width="*" 
+                  title="Name" align="left">{{row.name}}</v-column>
         <v-column width="150" title="Groups" align="left">
           <span v-for="grp in row.groups">{{grp}} </span>
         </v-column>
         <v-column width="100" title="Action" align="center">
-          <v-button class="red" icon="remove.png"
+          <v-button class="red" icon="remove.png" 
                     require="row.uid!=0"
                     cb="remove(id)">Remove</v-button>
         </v-column>
@@ -46,6 +44,15 @@
         <br>
       </v-form>
       
+      <v-secret require="showsecrets"
+                show="secrets++; showsecrets=true">
+        Welcome to Mozart's Ghost!
+        <br>
+        <v-button badge="{{secrets}}" 
+                  cb="showsecrets=false"
+                  class="black">Hide Secrets</v-button>
+      </v-secret>
+
     </v-view>
   </body>
 

@@ -184,7 +184,7 @@ class VidiView
     // into a function that gets local references to all the model's listed
     // top-level variables, as well as an optional index and loop variable.
     // ------------------------------------------------------------------------
-    eval(e,tempvars) {
+    eval(e,tempvars,noreturn) {
         let self = this;
         let src = "(function(){ return function(__self,__data,__locals) {";
         for (let id in self.$data) {
@@ -198,6 +198,7 @@ class VidiView
             src += "var "+lid+" = __locals."+lid+";";
         }
         
+        // Handle variable assignments
         e = e.replace(/[a-zA-Z0-9_]+ *=[^=]/g, function (m) {
             let varname=m.replace(/ *=.*/,'');
             if (self.$data[varname] !== undefined) {
@@ -206,7 +207,28 @@ class VidiView
             return m;
         });
         
-        src += "return ("+e+"); ";
+        // Handle postincrements.
+        e = e.replace(/[a-zA-Z0-9_]+[+-]{2}/g, function (m) {
+            let varname=m.replace(/[+-]{2}/,'');
+            if (self.$data[varname] !== undefined) {
+                return "__data."+m;
+            }
+            return m;
+        });
+
+        // Handle preincrements.
+        e = e.replace(/[+-]{2}[a-zA-Z0-9_]+/g, function (m) {
+            let varname=m.replace(/[+-]{2}/,'');
+            if (self.$data[varname] !== undefined) {
+                return m.replace(/[+-]{2}/,function(m) {
+                    return m+"__data.";
+                });
+            }
+            return m;
+        });
+
+        if (noreturn) src += e +";";
+        else src += "return ("+e+"); ";
         src += "}})()";
         
         try {
@@ -237,6 +259,9 @@ class VidiView
         if (self.renderTimeout) return;
         
         self.renderTimeout = setTimeout (function() {
+            if (Vidi.debug) {
+                console.log ("render");
+            }
             let div = document.createElement ("div");
             div.setAttribute ("id", self.$id);
             div.setAttribute ("v-view", self.$id);
@@ -341,21 +366,27 @@ class VidiView
             if (vcomp) {
                 let component = Vidi.components[vcomp];
                 if (component) {
-                    tempvars.component = component.functions;
-                    tempvars.componentName = vcomp;
+                    tempvars["$component"] = component.functions;
                     let vinstance = orig.getAttribute ("v-instance");
                     if (vinstance) {
                         let instance = Vidi.instances[vinstance];
-                        tempvars.instance = {
+                        tempvars["$instance"] = {
                             view: self.view,
-                            attributes: instance.attributes
+                            attributes: instance.attributes,
+                            children: instance.children,
+                            state: instance.state,
+                            render: function() { self.render(); }
                         }
                     }
                 }
             }
         }
-            
+        
         if (orig.getAttributeNames) {
+            let checksumstr = ""; // collect checksum for all code found in
+                                  // v-on: attributes to generate a checksum
+                                  // id. This allows us to distinguish nodes
+                                  // with unique event listeners.
             for (let a of orig.getAttributeNames()) {
                 let val = orig.getAttribute (a);
                 if (a.startsWith("v-")) {
@@ -385,9 +416,10 @@ class VidiView
                                 });
                             }
 
+                            checksumstr += "//" + val;
                             nw.addEventListener(evname, function(e) {
-                                ontv.event = e;
-                                self.eval(val, ontv);
+                                ontv["$event"] = e;
+                                self.eval(val, ontv, true);
                             });
                             break;
                             
@@ -435,6 +467,15 @@ class VidiView
                     });
                 }
                 nw.setAttribute (a, val);
+            }
+            
+            if (checksumstr.length) {
+                let tv = {};
+                for (let key in tempvars) {
+                    if (! key.startsWith('$')) tv[key] = tempvars[key];
+                }
+                checksumstr += "//" + JSON.stringify(tv);
+                nw.setAttribute ("v-eventid", Vidi.checksum(checksumstr));
             }
         }
         for (let cn of orig.childNodes) {
@@ -486,6 +527,7 @@ class VidiView
         if (left.nodeType == Node.ELEMENT_NODE) {
             for (let a of left.getAttributeNames()) {
                 if (left.getAttribute(a) !== right.getAttribute(a)) {
+                   return false;
                    if (right.getAttribute(a) === null) {
                         left.removeAttribute(a);
                     }
@@ -496,6 +538,7 @@ class VidiView
             }
             for (let a of right.getAttributeNames()) {
                 if (left.getAttribute(a) !== right.getAttribute(a)) {
+                    return false;
                     if (right.getAttribute(a) === null) {
                         left.removeAttribute(a);
                     }
@@ -703,7 +746,11 @@ class VidiComponent {
             let uuid = Vidi.uuidv4();
             div.firstChild.setAttribute("v-component", self.$name);
             div.firstChild.setAttribute("v-instance", uuid);
-            Vidi.instances[uuid] = { attributes: attr };
+            Vidi.instances[uuid] = { 
+                attributes: attr,
+                children: children,
+                state: {}
+            };
             
             for (let i=0; i<div.childNodes.length; ++i) {
                 let node = div.childNodes[i];
@@ -740,7 +787,14 @@ class VidiComponent {
                     node.removeAttribute (a);
                     let split = val.split(" in ");
                     let splitvar = split[0];
+                    let splitindex = null;
                     let tv = {};
+                    
+                    if (splitvar.indexOf(",") > 0) {
+                        let tuple = splitvar.split(",");
+                        splitvar = tuple[0];
+                        splitindex = tuple[1];
+                    }
                     
                     let iter = self.eval (split[1], attr, funcs, inner,
                                           tempvars, children);
@@ -750,6 +804,7 @@ class VidiComponent {
                     
                     for (let obj of iter) {
                         tv[splitvar] = obj;
+                        if (splitindex) tv[splitindex] = obj;
                         let nw = node.cloneNode(true);
                         
                         self.fixAttributes (nw, attr, funcs, inner,
@@ -880,7 +935,6 @@ Vidi.clone = function(obj) {
     if (typeof (obj) == "function") return obj;
     if (obj.constructor) copy = obj.constructor();
     else {
-        console.log ("No constructor:",obj);
         copy = {};
     }
     for (var attr in obj) {
@@ -894,6 +948,11 @@ Vidi.clone = function(obj) {
     return copy;
 }
 
+// ============================================================================
+// Create a shallow clone of an object, keeping the member variables
+// as references, but allowing mutations to the actual member list
+// separated from the original.
+// ============================================================================
 Vidi.copy = function(obj) {
     if (null == obj || "object" != typeof obj) return obj;
     if (typeof (obj) == "function") return obj;
@@ -904,6 +963,9 @@ Vidi.copy = function(obj) {
     return copy;
 }
 
+// ============================================================================
+// Generate a uuid (used for tracking component instances)
+// ============================================================================
 Vidi.uuidv4 = function() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -912,9 +974,23 @@ Vidi.uuidv4 = function() {
 }
 
 // ============================================================================
+// Generate schnaader for a string
+// ============================================================================
+Vidi.checksum = function(s) {
+    let hash=0;
+    for (let i=0; i < s.length; i++) {
+      let chr = s.charCodeAt(i);
+      hash = ((hash << 5) - hash) + chr;
+      hash |= 0;
+    }
+    if (hash<0) hash = -(hash-1);
+    let code = hash.toString(16).padStart(8,'0');
+    return code.substr(0,4) + "-" + code.substr(4);
+}
+
+// ============================================================================
 // Log helper
 // ============================================================================
 Vidi.warn = function(str) {
     console.warn ("[Vidi] "+str);
 }
-
