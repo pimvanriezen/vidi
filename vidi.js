@@ -319,19 +319,21 @@ class VidiView
         let self = this;
         let nw = document.createElement(orig.tagName);
         
-        let vcomp = orig.getAttribute("v-component");
+        if (orig.getAttribute) {
+            let vcomp = orig.getAttribute("v-component");
 
-        if (vcomp) {
-            let component = Vidi.components[vcomp];
-            if (component) {
-                tempvars.component = component.functions;
-                tempvars.componentName = vcomp;
-                let vinstance = orig.getAttribute ("v-instance");
-                if (vinstance) {
-                    let instance = Vidi.instances[vinstance];
-                    tempvars.instance = {
-                        view: self.view,
-                        attributes: instance.attributes
+            if (vcomp) {
+                let component = Vidi.components[vcomp];
+                if (component) {
+                    tempvars.component = component.functions;
+                    tempvars.componentName = vcomp;
+                    let vinstance = orig.getAttribute ("v-instance");
+                    if (vinstance) {
+                        let instance = Vidi.instances[vinstance];
+                        tempvars.instance = {
+                            view: self.view,
+                            attributes: instance.attributes
+                        }
                     }
                 }
             }

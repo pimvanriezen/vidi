@@ -75,6 +75,11 @@ button.red
     background-color: rgb(153,80,76);
 }
 
+button.black
+{
+    background-color: rgb(120,120,120);
+}
+
 div.badge
 {
     display: none;
@@ -87,7 +92,6 @@ div.badge
     padding-right: 5px;
     padding-top: 4px;
     padding-bottom: 4px;
-    position: absolute;
     right: 0;
     text-align: center;
     min-width: 12px;
@@ -95,6 +99,8 @@ div.badge
     margin-top: -26px;
     margin-right: 4px;
     border-radius: 24px;
+    float:right;
+    right: 0;
 }
 
 .badge.nonzero {
@@ -108,13 +114,18 @@ button .badge
     margin-top: -18px;
     margin-bottom: 0;
     margin-right: -22px;
-    margin-left: 2px;
+    margin-left: 12px;
     min-width: 9px;
     font-size: 9px;
     padding-top: 2px;
     padding-bottom: 4px;
     padding-left: 3px;
     padding-right: 3px;
+}
+
+button.badged {
+    padding-left: 10px;
+    padding-right: 32px;
 }
 
 button:hover

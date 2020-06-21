@@ -12,7 +12,9 @@
       <h1 class="classy">{{title}}</h1>
       <p v-if="showsecrets">
         Secret message goes here
-        <v-button badge="{{secrets}}" class="red">Hide Secrets</v-button>
+        <v-button badge="{{secrets}}" 
+                  cb="hideSecrets()"
+                  class="black">Hide Secrets</v-button>
       </p>
 
       <v-table width="100%" max-width="1024"

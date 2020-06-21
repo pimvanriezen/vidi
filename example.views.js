@@ -30,6 +30,10 @@ new Vidi.View("user", {
         delete this.view.users[id];
     },
     
+    hideSecrets:function() {
+        this.view.showsecrets = false;
+    },
+    
     add:function() {
         if (! this.view.newid) {
             alert("Invalid data");

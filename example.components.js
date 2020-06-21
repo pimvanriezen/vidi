@@ -11,6 +11,7 @@ new Vidi.Component("v-button", {
     },
     template:`
         <button v-on:click="{{attr.cb}}"
+                class="{{makeClass(attr)}}"
                 class="{{attr.icon?'withicon ':''}}{{attr.class}}"
                 v-bind:disabled="{{makeDisabled(attr)}}"
                 style="{{makeStyle(attr)}}">
@@ -28,6 +29,13 @@ new Vidi.Component("v-button", {
             if (attr.icon) {
                 return "background-image:url('icon/" + attr.icon + "');";
             }
+        },
+        makeClass:function(attr) {
+            let classlist = [];
+            if (attr.icon) classlist.push("withicon");
+            if (attr.badge) classlist.push("badged");
+            if (attr.class) classlist.push(attr.class);
+            return classlist.join(' ');
         },
         makeDisabled:function(attr) {
             if (attr.require) {
