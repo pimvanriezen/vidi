@@ -382,6 +382,8 @@ class VidiView
             }
         }
         
+        // We're cloning out of a template, so we'll need to handle
+        // the attributes where needed, and copy the rest.
         if (orig.getAttributeNames) {
             let checksumstr = ""; // collect checksum for all code found in
                                   // v-on: attributes to generate a checksum
@@ -389,6 +391,8 @@ class VidiView
                                   // with unique event listeners.
             for (let a of orig.getAttributeNames()) {
                 let val = orig.getAttribute (a);
+                
+                // Vidi-specific attributes
                 if (a.startsWith("v-")) {
                     // Handle the v-model property
                     let attrbase = a.split(':')[0];
@@ -403,6 +407,7 @@ class VidiView
                                     self.view[model] = newval;
                                 }
                             });
+                            checksumstr += "//"+val;
                             break;
                         
                         case "v-on":
@@ -424,8 +429,6 @@ class VidiView
                             break;
                             
                         case "v-bind":
-                            // We really don't need this, but this makes
-                            // it easier to port vue projects.
                             let bindto = a.substr(7);
                             
                             if (val.indexOf('{{') >= 0) {
