@@ -259,6 +259,8 @@ class VidiView
         if (self.renderTimeout) return;
         
         self.renderTimeout = setTimeout (function() {
+            clearTimeout (self.renderTimeout);
+            delete self.renderTimeout;
             if (Vidi.debug) {
                 console.log ("render");
             }
@@ -280,9 +282,7 @@ class VidiView
                 self.$el = div;
             }
             
-            clearTimeout (self.renderTimeout);
-            delete self.renderTimeout;
-        }, 10);
+        }, 10 /* 100fps max, change to 7 for 144Hz support ;) */);
     }
     
     // ------------------------------------------------------------------------
@@ -691,92 +691,102 @@ class VidiComponent {
     // ------------------------------------------------------------------------
     render() {
         let self = this;
-        let def = self.$def;
         
         let elements = document.getElementsByTagName (self.$name);
         for (let i = elements.length-1; i>=0; --i) {
-            let elm = elements[i];
-            var attr = {};
-            for (let a in def.attributes) {
-                let inattr = elm.getAttribute (a);
-                let defattr = def.attributes[a];
-                if (defattr == Vidi.Attribute.REQUIRED && !inattr) {
-                    console.warn ("[Vidi] Found '"+self.$name+"' element with "+
-                                  "missing required attribute '"+attr+"'",
-                                  elm);
-                }
-                
-                if (inattr) {
-                    if (defattr != Vidi.Attribute.STRIP) {
-                        attr[a] = inattr;
-                    }
-                }
-            }
-            
-            let children = [];
-            if (def.children) {
-                for (let tchild of elm.childNodes) {
-                    if (! tchild.getAttribute) continue;
-                    let newchild = { attr:{}, innerhtml:"" };
-                    for (let cattr in def.children) {
-                        let attr = tchild.getAttribute (cattr);
-                        if (! attr) {
-                            if (def.children[cattr] == Vidi.Attribute.REQUIRED) {
-                                Vidi.warn ("Instance of component '"+self.$name+
-                                           "' missing required child attribute"+
-                                           " '"+cattr+"'");
-                            }
-                        }
-                        else {
-                            newchild.attr[cattr] = attr;
-                        }
-                    }
-                    newchild.innerhtml = tchild.innerHTML;
-                    children.push (newchild);
-                }
-                elm.innerHTML = "";
-            }
-            
-            let div = document.createElement ("div");
-            let inner = elm.innerHTML;
-            div.innerHTML = self.$template;
-            self.fixAttributes (div, attr, def.functions, inner, null, children);
-            
-            for (let a in def.attributes) {
-                let defattr = def.attributes[a];
-                if (defattr == Vidi.Attribute.COPY) {
-                    if (elm.getAttribute(a)) {
-                        div.firstChild.setAttribute(a, elm.getAttribute(a));
-                    }
-                }
-            }
-            
-            let uuid = Vidi.uuidv4();
-            div.firstChild.setAttribute("v-component", self.$name);
-            div.firstChild.setAttribute("v-instance", uuid);
-            Vidi.instances[uuid] = { 
-                attributes: attr,
-                children: children,
-                state: {}
-            };
-            
-            for (let i=0; i<div.childNodes.length; ++i) {
-                let node = div.childNodes[i];
-                
-                if (elm.nextSibling) {
-                    elm.parentNode.insertBefore(node,elm.nextSibling);
-                }
-                else {
-                    elm.parentNode.appendChild(node);
-                }
-            }
-            
-            elm.parentNode.removeChild (elm);
+            self.renderElement (elements[i]);
         }
     }
     
     // ------------------------------------------------------------------------
-    // Removes attributes that yielded no value out of applying the template.
+    // Render out a top level element
+    // ------------------------------------------------------------------------
+    renderElement(elm) {
+        let self = this;
+        let def = self.$def;
+        
+        var attr = {};
+        for (let a in def.attributes) {
+            let inattr = elm.getAttribute (a);
+            let defattr = def.attributes[a];
+            if (defattr == Vidi.Attribute.REQUIRED && !inattr) {
+                console.warn ("[Vidi] Found '"+self.$name+"' element with "+
+                              "missing required attribute '"+attr+"'",
+                              elm);
+            }
+            
+            if (inattr) {
+                if (defattr != Vidi.Attribute.STRIP) {
+                    attr[a] = inattr;
+                }
+            }
+        }
+        
+        let children = [];
+        if (def.children) {
+            for (let tchild of elm.childNodes) {
+                if (! tchild.getAttribute) continue;
+                let newchild = { attr:{}, innerhtml:"" };
+                for (let cattr in def.children) {
+                    let attr = tchild.getAttribute (cattr);
+                    if (! attr) {
+                        if (def.children[cattr] == Vidi.Attribute.REQUIRED) {
+                            Vidi.warn ("Instance of component '"+self.$name+
+                                       "' missing required child attribute"+
+                                       " '"+cattr+"'");
+                        }
+                    }
+                    else {
+                        newchild.attr[cattr] = attr;
+                    }
+                }
+                newchild.innerhtml = tchild.innerHTML;
+                children.push (newchild);
+            }
+            elm.innerHTML = "";
+        }
+        
+        let div = document.createElement ("div");
+        let inner = elm.innerHTML;
+        div.innerHTML = self.$template;
+        self.fixAttributes (div, attr, def.functions, inner, null, children);
+        
+        for (let a in def.attributes) {
+            let defattr = def.attributes[a];
+            if (defattr == Vidi.Attribute.COPY) {
+                if (elm.getAttribute(a)) {
+                    div.firstChild.setAttribute(a, elm.getAttribute(a));
+                }
+            }
+        }
+        
+        let uuid = Vidi.uuidv4();
+        div.firstChild.setAttribute("v-component", self.$name);
+        div.firstChild.setAttribute("v-instance", uuid);
+        Vidi.instances[uuid] = { 
+            attributes: attr,
+            children: children,
+            state: {}
+        };
+        
+        for (let i=0; i<div.childNodes.length; ++i) {
+            let node = div.childNodes[i];
+            
+            if (elm.nextSibling) {
+                elm.parentNode.insertBefore(node,elm.nextSibling);
+            }
+            else {
+                elm.parentNode.appendChild(node);
+            }
+        }
+        
+        elm.parentNode.removeChild (elm);
+    }
+    
+    // ------------------------------------------------------------------------
+    // Expands any code in attributes, and inner text, handles the
+    // 'component-for' attribute, and removes attributes that have no data 
+    // after doing the above.
     // ------------------------------------------------------------------------
     fixAttributes (node, attr, funcs, inner, tempvars, children, top) {
         let self = this;
@@ -982,7 +992,9 @@ Vidi.uuidv4 = function() {
 }
 
 // ============================================================================
-// Generate schnaader for a string
+// Generate simple hash for a string. Used when setting up the
+// EventListeners for a DOM node, to keep track of unique combinations of
+// event handling code fragments and closure data.
 // ============================================================================
 Vidi.checksum = function(s) {
     let hash=0;
