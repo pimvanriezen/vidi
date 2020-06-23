@@ -376,13 +376,9 @@ class VidiView
                     let vinstance = orig.getAttribute ("v-instance");
                     if (vinstance) {
                         let instance = Vidi.instances[vcomp][vinstance];
-                        tempvars["$instance"] = {
-                            view: self.view,
-                            attr: instance.attr,
-                            children: instance.children,
-                            state: instance.state,
-                            render: function() { self.render(); }
-                        }
+                        instance.view = self.view;
+                        instance.render = function() { self.render(); };
+                        tempvars["$instance"] = instance;
                     }
                 }
             }
@@ -704,7 +700,11 @@ class VidiComponent {
             "$name": this.$name,
             "$def": this.$def,
             "$template": this.$template,
-            "functions": this.functions
+            "functions": this.functions,
+            "view": null,
+            "render": function() {
+                throw new Error("render() called on unbound instance");
+            }
         }
 
         if (document.readyState === "complete") {
