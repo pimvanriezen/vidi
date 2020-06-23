@@ -146,7 +146,7 @@ new Vidi.Component("v-table", {
                 }
                 else {
                     instance.state.sortKey = 
-                        Object.keys(instance.attr)[0];
+                        instance.children[0].attr.key;
                 }
             }
             sortKey = instance.state.sortKey;
@@ -162,7 +162,7 @@ new Vidi.Component("v-table", {
                 }
                 else {
                     instance.state.sortKey = 
-                        Object.keys(instance.attr)[0];
+                        instance.children[0].attr.key;
                 }
             }
             sortKey = instance.state.sortKey;
