@@ -141,12 +141,12 @@ new Vidi.Component("v-table", {
         sortStyle:function(instance,key) {
             let sortKey;
             if (! instance.state.sortKey) {
-                if (instance.attributes["sort-key"]) {
-                    instance.state.sortKey = instance.attributes["sort-key"];
+                if (instance.attr["sort-key"]) {
+                    instance.state.sortKey = instance.attr["sort-key"];
                 }
                 else {
                     instance.state.sortKey = 
-                        Object.keys(instance.attributes)[0];
+                        Object.keys(instance.attr)[0];
                 }
             }
             sortKey = instance.state.sortKey;
@@ -157,12 +157,12 @@ new Vidi.Component("v-table", {
         sort:function(instance,rows) {
             let sortKey;
             if (! instance.state.sortKey) {
-                if (instance.attributes["sort-key"]) {
-                    instance.state.sortKey = instance.attributes["sort-key"];
+                if (instance.attr["sort-key"]) {
+                    instance.state.sortKey = instance.attr["sort-key"];
                 }
                 else {
                     instance.state.sortKey = 
-                        Object.keys(instance.attributes)[0];
+                        Object.keys(instance.attr)[0];
                 }
             }
             sortKey = instance.state.sortKey;
@@ -239,7 +239,7 @@ new Vidi.Component("v-textinput", {
     functions:{
         keyUp:function(instance, event) {
             if (event.keyCode != 27) return;
-            let model = instance.attributes.id;
+            let model = instance.attr.id;
             instance.view[model] = "";
             event.target.value = "";
         }

@@ -9,7 +9,7 @@
 // ============================================================================
 // CLASS NestProxy
 // ---------------
-// A variation of the JavaScript proxy object that survived nested
+// A variation of the JavaScript proxy object that survives nested
 // hierarchies. The provided handler should implement a setPath() and
 // getPath() function that handle actual access to the proxied data.
 // ============================================================================
@@ -145,6 +145,13 @@ class VidiView
         self.$ = self.querySelector;
         self.$id = id;
         
+        self.$data = Vidi.clone (model);
+        self.$el = null;
+
+        // Set up public variables
+        self.view = NestProxy.create (self.$data, self);
+        Vidi.views[id] = this;
+        
         if (document.readyState === "complete") {
             self.init(id);
         }
@@ -154,17 +161,12 @@ class VidiView
                 self.init(id);
             });
         }
-        
-        self.$data = Vidi.clone (model);
-        self.$el = null;
-
-        // Set up public variables
-        self.view = NestProxy.create (self.$data, self);
-        
-        Vidi.views[id] = this;
-        
     }
     
+    // ------------------------------------------------------------------------
+    // Binds to an actual DOM node. Gets called when the document readyState
+    // is marked as complete.
+    // ------------------------------------------------------------------------
     init(id) {
         let self = this;
         self.$template = document.getElementById (id);
@@ -174,6 +176,10 @@ class VidiView
         self.render();
     }
     
+    // ------------------------------------------------------------------------
+    // Little shorthand for doing a query-selection on the view's head
+    // element.
+    // ------------------------------------------------------------------------
     querySelector(q) {
         let self = this;
         return self.$el.querySelector(q);
@@ -372,7 +378,7 @@ class VidiView
                         let instance = Vidi.instances[vinstance];
                         tempvars["$instance"] = {
                             view: self.view,
-                            attributes: instance.attributes,
+                            attr: instance.attr,
                             children: instance.children,
                             state: instance.state,
                             render: function() { self.render(); }
@@ -397,6 +403,10 @@ class VidiView
                     // Handle the v-model property
                     let attrbase = a.split(':')[0];
                     switch (attrbase) {
+                    
+                        // The v-model attribute: Tracks changes to an
+                        // input element's value and reflects them back
+                        // to the view.
                         case "v-model":
                             let model = val;
                             let curval = self.view[model];
@@ -410,6 +420,8 @@ class VidiView
                             checksumstr += "//"+val;
                             break;
                         
+                        // The v-on attribute: Sets up an event handler
+                        // on an element.
                         case "v-on":
                             let evname = a.substr(5);
                             let ontv = Vidi.copy (tempvars);
@@ -427,7 +439,11 @@ class VidiView
                                 self.eval(val, ontv, true);
                             });
                             break;
-                            
+                         
+                        // The v-bind attribute allows attribute-values
+                        // to be programmatic from the view without needing
+                        // to enmoustache their arguments, making setting
+                        // up bindings from within a component less awkward.   
                         case "v-bind":
                             let bindto = a.substr(7);
                             
@@ -452,13 +468,16 @@ class VidiView
                                 nw.removeAttribute (bindto);
                             }
                             break;
-                            
+                        
+                        // The v-component attribute tracks the head node
+                        // of a component. Keep it around because it makes
+                        // debugging the element tree much simpler.    
                         case "v-component":
                             nw.setAttribute (a, val);
                             break;
                     }
                     
-                    // Don't copy the template attribute into the
+                    // Don't copy any other Vidi attribute into the
                     // rendered DOM tree, it's only of internal use.
                     continue;
                 }
@@ -472,6 +491,11 @@ class VidiView
                 nw.setAttribute (a, val);
             }
             
+            // If there's data in the checksumstr, that means we added
+            // event listeners to the node, so we need to make sure
+            // that any DOM-reorganizing fuckery happening in the view
+            // will distinguish nodes that have the exact same attributes
+            // but are bound to different listeners.
             if (checksumstr.length) {
                 let tv = {};
                 for (let key in tempvars) {
@@ -481,10 +505,13 @@ class VidiView
                 nw.setAttribute ("v-eventid", Vidi.checksum(checksumstr));
             }
         }
+        
+        // Render any children
         for (let cn of orig.childNodes) {
             self.renderTemplate (nw, cn, tempvars);
         }
         
+        // If we're a text-node, do things to our textContent.
         if (! orig.childElementCount) {
             let text = orig.textContent;
             if (text) {
@@ -510,7 +537,9 @@ class VidiView
     }
     
     // ------------------------------------------------------------------------
-    // Compares two DOM nodes, sans children
+    // Compares two DOM nodes, sans children. If it's possible to do a
+    // gentle mutation, like swapping in the right node's attributes,
+    // or input-value, goes ahead and does that. Otherwise, returns false.
     // ------------------------------------------------------------------------
     compareNodes (left, right) {
         if (left.nodeType != right.nodeType) {
@@ -523,11 +552,18 @@ class VidiView
             return false;
         }
 
+        if (! left.childElementCount) {
+            if (left.textContent != right.textContent) return false;
+        }
+        
         if (left.value != right.value) {
             left.value = right.value;
         }
         
         if (left.nodeType == Node.ELEMENT_NODE) {
+            // In case of bound events, we should consider the elements
+            // un-swappable. Other attributes can be safely transplanted
+            // if the element is unbound.
             let lefteventid = left.getAttribute("v-eventid");
             let righteventid = right.getAttribute("v-eventid");
             
@@ -557,10 +593,6 @@ class VidiView
             }
         }
 
-        if (! left.childElementCount) {
-            if (left.textContent != right.textContent) return false;
-        }
-        
         return true;
     }
     
@@ -764,7 +796,7 @@ class VidiComponent {
         div.firstChild.setAttribute("v-component", self.$name);
         div.firstChild.setAttribute("v-instance", uuid);
         Vidi.instances[uuid] = { 
-            attributes: attr,
+            attr: attr,
             children: children,
             state: {}
         };
