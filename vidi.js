@@ -375,7 +375,7 @@ class VidiView
                     tempvars["$component"] = component.functions;
                     let vinstance = orig.getAttribute ("v-instance");
                     if (vinstance) {
-                        let instance = Vidi.instances[vinstance];
+                        let instance = Vidi.instances[vcomp][vinstance];
                         tempvars["$instance"] = {
                             view: self.view,
                             attr: instance.attr,
@@ -792,13 +792,20 @@ class VidiComponent {
             }
         }
         
-        let uuid = Vidi.uuidv4();
+        let instanceid = 0;
+        let elmid = elm.getAttribute("id");
+        instanceid = elmid ? elmid : Vidi.uuidv4();
+
         div.firstChild.setAttribute("v-component", self.$name);
-        div.firstChild.setAttribute("v-instance", uuid);
-        Vidi.instances[uuid] = { 
+        div.firstChild.setAttribute("v-instance", instanceid);
+        if (! Vidi.instances[self.$name]) {
+            Vidi.instances[self.$name] = {};
+        }
+        Vidi.instances[self.$name][instanceid] = { 
             attr: attr,
             children: children,
-            state: {}
+            state: {},
+            functions: self.functions
         };
         
         for (let i=0; i<div.childNodes.length; ++i) {
