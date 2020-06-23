@@ -107,7 +107,7 @@ new Vidi.Component("v-table", {
             <th component-for="col in children"
                    v-on:click="$component.click($instance,'{{col.attr.key}}')"
                         class="{{col.attr.key?'clickable':''}}"
-                       align="{{col.attr.align}}">
+                        align="{{col.attr.align}}">
               <span v-bind:style="$component.sortStyle($instance,
                                                       '{{col.attr.key}}')">
                 {{col.attr.title}}
@@ -231,9 +231,9 @@ new Vidi.Component("v-textinput", {
     template:`
         <div>
             <label for="{{attr.id}}">{{innerhtml}}</label>
-            <input name="{{attr.id}}" spellcheck="false"
+            <input      name="{{attr.id}}" spellcheck="false"
                    v-on:keyup="$component.keyUp($instance,$event)"
-                   v-model="{{attr.id}}"/>
+                      v-model="{{attr.id}}"/>
         </div>
     `,
     functions:{
