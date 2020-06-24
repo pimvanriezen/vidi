@@ -523,6 +523,10 @@ class VidiView
                                 nw.removeAttribute (bindto);
                             }
                             break;
+                            
+                        case "v-html":
+                            nw.innerhtml = self.eval (val, tempvars);
+                            break;
                         
                         // The v-component attribute tracks the head node
                         // of a component. Keep it around because it makes
