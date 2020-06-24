@@ -186,6 +186,10 @@ class VidiView
             self.$onupdate = def.updated.bind(self.view);
         }
         
+        if (def.created) {
+            self.$oncreate = def.created.bind(self.view);
+        }
+        
         if (document.readyState === "complete") {
             self.init(id);
         }
@@ -307,9 +311,7 @@ class VidiView
         }
         if (self.renderTimeout) return;
         
-        self.renderTimeout = setTimeout (function() {
-            clearTimeout (self.renderTimeout);
-            delete self.renderTimeout;
+        let dorender = function() {
             if (Vidi.debug) {
                 console.log ("render");
             }
@@ -331,8 +333,22 @@ class VidiView
                 self.$parent.replaceChild (div, self.$template);
                 self.$el = div;
             }
-            self.renderedOnce = true;
-        }, 10 /* 100fps max, change to 7 for 144Hz support ;) */);
+            if (! self.renderedOnce) {
+                if (self.$oncreate) {
+                    self.$oncreate (self);
+                }
+                self.renderedOnce = true;
+            }
+        }
+        
+        if (! self.renderedOnce) dorender();
+        else {
+            self.renderTimeout = setTimeout (function() {
+                clearTimeout (self.renderTimeout);
+                delete self.renderTimeout;
+                dorender();
+            }, 10 /* 100fps max, change to 7 for 144Hz support ;) */);
+        }
     }
     
     // ------------------------------------------------------------------------
