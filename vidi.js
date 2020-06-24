@@ -733,12 +733,9 @@ class VidiView
                 let rsplit = split[0].split(",");
                 let indexvar = null;
                 let loopvar = rsplit[0];
-                let indexorig = null;
-                let looporig = null;
                 
                 if (rsplit.length > 1) {
-                    indexvar = rsplit[0];
-                    loopvar = rsplit[1];
+                    indexvar = rsplit[1];
                 }
                 
                 let data = self.eval(loopval, tempvars);

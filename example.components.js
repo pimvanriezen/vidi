@@ -114,7 +114,7 @@ new Vidi.Component("v-table", {
               </span>
             </th>
           </tr>
-          <tr v-for="id,row in $component.sort($instance, {{attr.rows}})">
+          <tr v-for="row,id in $component.sort($instance, {{attr.rows}})">
             <td component-for="c in children"
                         width="{{c.attr.width}}"
                         align="{{c.attr.align}}">
