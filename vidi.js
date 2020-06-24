@@ -1076,7 +1076,15 @@ Vidi.clone = function(obj) {
     if (null == obj || "object" != typeof obj) return obj;
     var copy;
     if (typeof (obj) == "function") return obj;
-    if (obj.constructor) copy = obj.constructor();
+    if (typeof(obj.constructor) == "function") {
+        try {
+            copy = obj.constructor();
+        }
+        catch (e) {
+            console.warn ("[Vidi] funny:",e);
+            copy = {}
+        }
+    }
     else {
         copy = {};
     }
