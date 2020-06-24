@@ -130,8 +130,9 @@ class VidiView
     // Constructor. Expects the id of the DOM node that is to be our template,
     // and a model-definition of what should go into the view.
     // ------------------------------------------------------------------------
-    constructor(id,model) {
+    constructor(id,def) {
         let self = this;
+        let model = def.model;
         
         for (let varname in model) {
             if (! varname.match (/^[a-zA-Z0-9_]+$/)) {
@@ -141,16 +142,48 @@ class VidiView
             }
         }
         
+        for (let varname in def.methods) {
+            if (! varname.match (/^[a-zA-Z0-9_]+$/)) {
+                console.error("[Vidi] model for view '#"+id+"' defines "+
+                              "invalid top-level method '"+varname+"'");
+                throw new Error("Invalid model");
+            }
+            
+            if (model[varname] !== undefined) {
+                console.error("[Vidi] View '#"+id+"' defines a "+
+                              "method '"+varname+"', which clashes with "+
+                              "the model.");
+                throw new Error("Invalid method");
+            }
+            
+            if (typeof (def.methods[varname]) != "function") {
+                console.error("[Vidi] View '#"+id+"' method '"+varname+"' "+
+                              "is not a function");
+                throw new Error("Invalid method");
+            }
+            model[varname] = def.methods[varname];
+        }
+        
+        model.$el = null;
+        
         // Set up private variables
         self.$ = self.querySelector;
         self.$id = id;
         
         self.$data = Vidi.clone (model);
         self.$el = null;
+        
+        if (def.watch) {
+            self.$watch = def.watch
+        }
 
         // Set up public variables
         self.view = NestProxy.create (self.$data, self);
         Vidi.views[id] = this;
+        
+        if (def.updated) {
+            self.$onupdate = def.updated.bind(self.view);
+        }
         
         if (document.readyState === "complete") {
             self.init(id);
@@ -262,6 +295,15 @@ class VidiView
     render() {
         let self = this;
 
+        if (self.renderedOnce) {
+            try {
+                if (self.$onupdate) self.$onupdate(self);
+            }
+            catch (e) {
+                console.warn ("[Vidi] Error in $onupdate for view '#"+
+                              self.$id+"':",e);
+            }
+        }
         if (self.renderTimeout) return;
         
         self.renderTimeout = setTimeout (function() {
@@ -281,13 +323,13 @@ class VidiView
             //console.log (div.innerHTML);
 
             if (self.$el) {
-                self.transplantDom (self.$el, div);
+                self.transplantDom (self.$el, div, self.renderedOnce);
             }
             else {
                 self.$parent.replaceChild (div, self.$template);
                 self.$el = div;
             }
-            
+            self.renderedOnce = true;
         }, 10 /* 100fps max, change to 7 for 144Hz support ;) */);
     }
     
@@ -300,6 +342,13 @@ class VidiView
         let obj = self.$data;
         let idx = 0;
         let key = null;
+        
+        if (path.length == 1) {
+            if (self.$watch && self.$watch[path[0]]) {
+                let fn = self.$watch[path[0]].bind(self.view);
+                fn(value);
+            }
+        }
         
         for (idx=0; idx<(path.length-1); ++idx) {
             key = path[idx];
@@ -348,6 +397,14 @@ class VidiView
     getPath (data, path) {
         let self = this;
         let obj = self.$data;
+        if (path[0] == "$el") {
+            return self.$el;
+        }
+
+        if (path.length == 1) {
+            if (path[0] == "$isView") return true;
+        }
+            
         for (let key of path) {
             if (typeof (obj) != "object") {
                 return undefined;
@@ -471,6 +528,16 @@ class VidiView
                         case "v-component":
                             nw.setAttribute (a, val);
                             break;
+                            
+                        case "v-if":
+                            break;
+                        
+                        case "v-for":
+                            break;
+                            
+                        default:
+                            Vidi.warn ("Unknown attribute: "+a);
+                            break;
                     }
                     
                     // Don't copy any other Vidi attribute into the
@@ -526,9 +593,10 @@ class VidiView
     // the target element. Attributes and text-data belonging to the element
     // and its children are parsed for moustache-templates.
     // ------------------------------------------------------------------------
-    appendClone (into, orig, tempvars) {
+    appendClone (into, orig, tempvars, hide) {
         let self = this;
         let nw = self.cloneElement (orig, tempvars);
+        if (hide) nw.style.display = "none";
         into.appendChild (nw);
     }
     
@@ -596,19 +664,22 @@ class VidiView
     // Transforms a target DOM node to match the output of a new render,
     // keeping subtrees that are unchanged.
     // ------------------------------------------------------------------------
-    transplantDom (into, from) {
+    transplantDom (into, from, isroot) {
         let self = this;
-        if (! self.compareNodes (into, from)) {
-            if (from.parentNode) {
-                // We swap out the original for an inferior clone, so we
-                // can keep its event listeners, but don't mess up the
-                // number of elements in the original's parent while we're
-                // iterating over them, which is considered bad form.
-                let sup = self.cloneElement (from, {});
-                from.parentNode.replaceChild (sup, from);
+        
+        if (! isroot) {
+            if (! self.compareNodes (into, from)) {
+                if (from.parentNode) {
+                    // We swap out the original for an inferior clone, so we
+                    // can keep its event listeners, but don't mess up the
+                    // number of elements in the original's parent while we're
+                    // iterating over them, which is considered bad form.
+                    let sup = self.cloneElement (from, {});
+                    from.parentNode.replaceChild (sup, from);
+                }
+                into.parentNode.replaceChild (from, into);
+                return;
             }
-            into.parentNode.replaceChild (from, into);
-            return;
         }
         
         for (let i=0; i<from.childNodes.length; ++i) {
@@ -640,6 +711,14 @@ class VidiView
                 }
             }
             
+            let hide = false;
+            let vshow = orig.getAttribute ("v-show");
+            if (vshow) {
+                if (! self.eval (vshow, tempvars)) {
+                    hide = true;
+                }
+            }
+            
             // Handle the v-for attribute
             let loopfor = orig.getAttribute ("v-for");
             if (loopfor) {
@@ -662,11 +741,11 @@ class VidiView
                     let tv = Vidi.copy(tempvars);
                     if (indexvar) tv[indexvar] = i;
                     tv[loopvar] = data[i];
-                    self.appendClone (into, orig, tv);
+                    self.appendClone (into, orig, tv, hide);
                 }
             }
             else {
-                self.appendClone (into, orig, tempvars);
+                self.appendClone (into, orig, tempvars, hide);
             }
         }
         else if (orig.nodeType == Node.TEXT_NODE) {
