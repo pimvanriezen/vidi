@@ -424,6 +424,7 @@ class VidiView
     cloneElement (orig, tempvars) {
         let self = this;
         let nw = document.createElement(orig.tagName);
+        let innerhtml = null;
         
         if (orig.getAttribute) {
             let vcomp = orig.getAttribute("v-component");
@@ -525,7 +526,7 @@ class VidiView
                             break;
                             
                         case "v-html":
-                            nw.innerhtml = self.eval (val, tempvars);
+                            innerhtml = self.eval (val, tempvars);
                             break;
                         
                         // The v-component attribute tracks the head node
@@ -573,6 +574,11 @@ class VidiView
                 checksumstr += "//" + JSON.stringify(tv);
                 nw.setAttribute ("v-eventid", Vidi.checksum(checksumstr));
             }
+        }
+        
+        if (innerhtml) {
+            nw.innerHTML = innerhtml;
+            return nw;
         }
         
         // Render any children
