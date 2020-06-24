@@ -52,6 +52,7 @@ class NestProxy {
         let handled = this.handler.getPath (robj.target, this.keypath(prop));
         if (handled === null || handled === undefined) return handled;
         if (typeof (handled) !== "object") return handled;
+        if (handled instanceof Element) return handled;
 
         if (! this.target[prop]) this.target[prop] = {};        
         let dp = new NestProxy (this.target[prop], this.handler, this, prop);
