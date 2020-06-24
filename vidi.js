@@ -316,6 +316,12 @@ class VidiView
             let div = document.createElement ("div");
             div.setAttribute ("id", self.$id);
             div.setAttribute ("v-view", self.$id);
+            div.setAttribute ("class", self.$template.getAttribute("class"));
+            if (self.$template.style.display) {
+                if (! self.renderedOnce) {
+                    div.style.display = self.$template.style.display;
+                }
+            }
 
             for (let node of self.$template.childNodes) {
                 self.renderTemplate (div, node);
