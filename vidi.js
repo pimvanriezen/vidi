@@ -236,6 +236,7 @@ class VidiView
         
         let src = "(function(){ return function(__self,__data,__locals) {";
         for (let id in self.$data) {
+            if (e.indexOf(id)<0) continue;
             src += "var "+id+" = __data."+id;
             if (typeof (self.$data[id]) == "function") {
                 src += ".bind(self)"
@@ -243,6 +244,7 @@ class VidiView
             src += ";"
         }
         for (let lid in tempvars) {
+            if (e.indexOf(lid)<0) continue;
             src += "var "+lid+" = __locals."+lid+";";
         }
         
