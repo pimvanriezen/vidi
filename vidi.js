@@ -231,7 +231,7 @@ class VidiView
     eval(e,tempvars,noreturn) {
         let self = this;
         
-        if (tempvars[e] !== undefined) return tumpvars[e];
+        if (tempvars[e] !== undefined) return tempvars[e];
         if (self.$data[e] !== undefined) return self.$data[e];
         
         let src = "(function(){ return function(__self,__data,__locals) {";
@@ -300,7 +300,8 @@ class VidiView
     }
 
     parseMoustache (str, tempvars) {
-        let res = str.replace(/{{\s?([^}]*)\s?}}/g,function(m) {
+        let self = this;
+        return str.replace(/{{\s?([^}]*)\s?}}/g,function(m) {
             let src = m.substr(2,m.length-4);
             let res = self.eval(src,tempvars);
             if (res === null || res === undefined) return res;
@@ -536,12 +537,30 @@ class VidiView
                                 val = self.parseMoustache (val, tempvars);
                             }
                             
-                            val = self.eval (val, tempvars);
+                            if (val.startsWith('{') &&
+                                     val.endsWith('}')) {
+                                let res = self.eval(val, tempvars);
+                                console.log ("object-eval: "+val);
+                                console.log (res);
+                                let resarray = [];
+                                for (let k in res) {
+                                    if (res[k]) resarray.push(k);
+                                }
+                                val = resarray.join(' ');
+                                console.log ("outval: "+val);
+                            }
+                            else {
+                                val = self.eval (val, tempvars);
+                            }
                             if (val !== false && val !== undefined) {
                                 if (val === true) {
                                     nw.setAttribute (bindto, "");
                                 }
                                 else {
+                                    if (orig.getAttribute (bindto)) {
+                                        val = orig.getAttribute (bindto) +
+                                              " " + val;
+                                    }
                                     nw.setAttribute (bindto, val);
                                 }
                             }
@@ -580,7 +599,9 @@ class VidiView
                 if (val.startsWith("{{")) {
                     val = self.parseMoustache (val, tempvars);
                 }
-                nw.setAttribute (a, val);
+                if (! orig.getAttribute ("v-bind:"+a)) {
+                    nw.setAttribute (a, val);
+                }
             }
             
             // If there's data in the checksumstr, that means we added
