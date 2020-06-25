@@ -952,18 +952,20 @@ class VidiComponent {
             }
         }
         
-        let children = [];
+        let children = {};
         if (def.children) {
             for (let tchild of elm.childNodes) {
                 if (! tchild.getAttribute) continue;
                 let newchild = { attr:{}, innerhtml:"" };
-                for (let cattr in def.children) {
+                let childtype = tchild.tagName.toLowerCase();
+                for (let cattr in def.children[childtype]) {
                     let attr = tchild.getAttribute (cattr);
                     if (! attr) {
-                        if (def.children[cattr] == Vidi.Attribute.REQUIRED) {
+                        let c = def.children[childtype][cattr];
+                        if (c == Vidi.Attribute.REQUIRED) {
                             Vidi.warn ("Instance of component '"+self.$name+
-                                       "' missing required child attribute"+
-                                       " '"+cattr+"'");
+                                       "' missing required <"+childtype+"> "+
+                                       "child attribute '"+cattr+"'");
                         }
                     }
                     else {
@@ -971,7 +973,8 @@ class VidiComponent {
                     }
                 }
                 newchild.innerhtml = tchild.innerHTML;
-                children.push (newchild);
+                if (! children[childtype]) children[childtype] = [];
+                children[childtype].push (newchild);
             }
             elm.innerHTML = "";
         }

@@ -96,15 +96,17 @@ new Vidi.Component("v-table", {
         "sort-key": Vidi.Attribute.OPTIONAL
     },
     children:{
-        "title":    Vidi.Attribute.REQUIRED,
-        "key":      Vidi.Attribute.OPTIONAL,
-        "align":    Vidi.Attribute.OPTIONAL,
-        "width":    Vidi.Attribute.OPTIONAL
+        "v-column":{
+            "title":    Vidi.Attribute.REQUIRED,
+            "key":      Vidi.Attribute.OPTIONAL,
+            "align":    Vidi.Attribute.OPTIONAL,
+            "width":    Vidi.Attribute.OPTIONAL
+        }
     },
     template:`
         <table cellspacing="5" border="0" style="{{makeStyle(attr)}}">
           <tr>
-            <th component-for="col in children"
+            <th component-for="col in children['v-column']"
                    v-on:click="$component.click($instance,'{{col.attr.key}}')"
                         class="{{col.attr.key?'clickable':''}}"
                         align="{{col.attr.align}}">
@@ -115,7 +117,7 @@ new Vidi.Component("v-table", {
             </th>
           </tr>
           <tr v-for="row,id in $component.sort($instance, {{attr.rows}})">
-            <td component-for="c in children"
+            <td component-for="c in children['v-column']"
                         width="{{c.attr.width}}"
                         align="{{c.attr.align}}">
               {{c.innerhtml}}
@@ -146,7 +148,7 @@ new Vidi.Component("v-table", {
                 }
                 else {
                     instance.state.sortKey = 
-                        instance.children[0].attr.key;
+                        instance.children["v-column"][0].attr.key;
                 }
             }
             sortKey = instance.state.sortKey;
@@ -162,7 +164,7 @@ new Vidi.Component("v-table", {
                 }
                 else {
                     instance.state.sortKey = 
-                        instance.children[0].attr.key;
+                        instance.children["v-column"][0].attr.key;
                 }
             }
             sortKey = instance.state.sortKey;
@@ -198,7 +200,7 @@ new Vidi.Component("v-view", {
         "id":Vidi.Attribute.COPY
     },
     template:`
-        <v-view id="{{attr.id}}" style="display:none;">
+        <v-view id="{{attr.id}}">
             {{innerhtml}}
         </v-view>
     `,
