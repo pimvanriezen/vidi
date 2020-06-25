@@ -589,7 +589,7 @@ class VidiView
                             break;
                             
                         default:
-                            Vidi.warn ("Unknown attribute: "+a);
+                            Vidi.warn ("Unknown v-attribute: "+a);
                             break;
                     }
                     
