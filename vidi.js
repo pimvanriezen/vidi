@@ -891,35 +891,75 @@ class VidiComponent {
         this.$template = def.template.replace(/^[ \n]*/, "");
         this.functions = def.functions;
         
-        Vidi.components[name] = {
-            "$name": this.$name,
-            "$def": this.$def,
-            "$template": this.$template,
-            "functions": this.functions,
-            "view": null,
-            "render": function() {
-                throw new Error("render() called on unbound instance");
+        let self = this;
+        
+        self.finalize = function() {
+            Vidi.components[name] = {
+                "$name": self.$name,
+                "$def": self.$def,
+                "$template": self.$template,
+                "functions": self.functions,
+                "view": null,
+                "render": function() {
+                    throw new Error("render() called on unbound instance");
+                }
+            }
+
+            if (document.readyState === "complete") {
+                self.render();
+            }
+            else {
+                window.addEventListener("load",function() {
+                    self.render();
+                });
+            }
+            
+            if (Vidi.$waiting[name] !== undefined) {
+                for (let obj of Vidi.$waiting[name]) {
+                    obj.unwait (name);
+                }
+                delete Vidi.$waiting[name];
             }
         }
-
-        if (document.readyState === "complete") {
-            this.render();
+        
+        if (def.requires && def.requires.length) {
+            self.waiting = {};
+            for (let req of def.requires) {
+                if (Vidi.components[req] === undefined) {
+                    self.waiting[req] = true;
+                    if (Vidi.$waiting[req] === undefined) {
+                        Vidi.$waiting[req] = [];
+                    }
+                    Vidi.$waiting[req].push (this);
+                }
+            }
+            if (Object.keys(self.waiting).length == 0) {
+                self.finalize();
+            }
         }
         else {
-            let self = this;
-            window.addEventListener("load",function() {
-                self.render();
-            });
+            self.finalize();
         }
+    }
+    
+    unwait(requirement) {
+        let self = this;
+        self.waiting[requirement] = false;
+        for (let req in self.waiting) {
+            if (self.waiting[req]) return;
+        }
+        
+        self.finalize();
     }
     
     // ------------------------------------------------------------------------
     // Renders out all instances of the custom component in the DOM tree.
     // ------------------------------------------------------------------------
-    render() {
+    render(rootnode) {
         let self = this;
+        let root = rootnode ? rootnode : document;
         
-        let elements = document.getElementsByTagName (self.$name);
+        let elements = root.getElementsByTagName (self.$name);
         for (let i = elements.length-1; i>=0; --i) {
             self.renderElement (elements[i]);
         }
@@ -1011,6 +1051,14 @@ class VidiComponent {
             state: {},
             functions: self.functions
         };
+        
+        // Render out any other components in our requires[] list, since
+        // we just created these out of thin air.
+        if (def.requires) {
+            for (let req of def.requires) {
+                Vidi.components[req].render (div);
+            }
+        }
         
         for (let i=0; i<div.childNodes.length; ++i) {
             let node = div.childNodes[i];
@@ -1184,7 +1232,8 @@ Vidi = {
     },
     instances:{},
     components:{},
-    views:{}
+    views:{},
+    $waiting:{}
 }
 
 // ============================================================================
