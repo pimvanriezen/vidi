@@ -583,6 +583,7 @@ class VidiView
                         case "v-for":
                         case "v-eventid":
                         case "v-show":
+                        case "v-instance":
                             break;
                             
                         default:
