@@ -230,6 +230,10 @@ class VidiView
     // ------------------------------------------------------------------------
     eval(e,tempvars,noreturn) {
         let self = this;
+        
+        if (tempvars[e] !== undefined) return tumpvars[e];
+        if (self.$data[e] !== undefined) return self.$data[e];
+        
         let src = "(function(){ return function(__self,__data,__locals) {";
         for (let id in self.$data) {
             src += "var "+id+" = __data."+id;
@@ -278,16 +282,17 @@ class VidiView
         try {
             return eval(src)(self,self.view,tempvars);
         }
-        catch (e) {
-            switch (e.name) {
+        catch (err) {
+            switch (err.name) {
                 case "ReferenceError":
                     Vidi.warn ("Template for '#"+self.$id+"' references "+
-                               "a variable not in its model: "+e.message);
+                               "a variable not in its model: "+err.message);
                     break;
                     
                 default:
-                    Vidi.warn ("Parse in '#"+self.$id+"': "+e.message);
-                    Vidi.warn ("text: "+src);
+                    Vidi.warn ("Parse error in '#"+self.$id+"': "+err.message);
+                    Vidi.warn ("text: "+e);
+                    Vidi.warn ("expanded: "+src);
                     break;
             }
             return null;
@@ -779,10 +784,21 @@ class VidiView
         else if (orig.nodeType == Node.TEXT_NODE) {
             let text = orig.textContent;
             if (text) {
-                text = text.replace(/{{\s?([^}]*)\s?}}/g,function(m) {
-                  let src = m.substr(2,m.length-4);
-                  return self.eval(src,tempvars);
-                });
+                try {
+                    text = text.replace(/{{\s?([^}]*)\s?}}/g,function(m) {
+                      let src = m.substr(2,m.length-4);
+                      let res = self.eval(src,tempvars);
+                      if (res === null || res === undefined) return res;
+                      if (typeof (res) != "object") return res;
+                      Vidi.warn ("[Vidi] got an object when evaluating {{"+
+                                 src + "}}");
+                      return "[Object]";
+                    });
+                }
+                catch (e) {
+                    Vidi.warn("replacetext: "+text);
+                    console.log (tempvars);
+                }
                 let nw = document.createTextNode(text);
                 into.appendChild (nw);
             }
