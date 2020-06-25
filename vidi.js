@@ -542,14 +542,11 @@ class VidiView
                             if (val.startsWith('{') &&
                                      val.endsWith('}')) {
                                 let res = self.eval(val, tempvars);
-                                console.log ("object-eval: "+val);
-                                console.log (res);
                                 let resarray = [];
                                 for (let k in res) {
                                     if (res[k]) resarray.push(k);
                                 }
                                 val = resarray.join(' ');
-                                console.log ("outval: "+val);
                             }
                             else {
                                 val = self.eval (val, tempvars);
@@ -670,7 +667,6 @@ class VidiView
                     return crsr;
                 }
             }
-            console.log ("---> ", crsr);
             return crsr;
         }
         
