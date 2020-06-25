@@ -949,12 +949,12 @@ class VidiComponent {
             }
         }
         
-        let children = {};
+        let children = { $all:[] };
         if (def.children) {
             for (let tchild of elm.childNodes) {
                 if (! tchild.getAttribute) continue;
-                let newchild = { attr:{}, innerhtml:"" };
                 let childtype = tchild.tagName.toLowerCase();
+                let newchild = { type:childtype, attr:{}, innerhtml:"" };
                 for (let cattr in def.children[childtype]) {
                     let attr = tchild.getAttribute (cattr);
                     if (! attr) {
@@ -972,6 +972,7 @@ class VidiComponent {
                 newchild.innerhtml = tchild.innerHTML;
                 if (! children[childtype]) children[childtype] = [];
                 children[childtype].push (newchild);
+                children.$all.push (newchild);
             }
             elm.innerHTML = "";
         }
