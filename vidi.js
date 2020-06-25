@@ -501,12 +501,12 @@ class VidiView
                         // to the view.
                         case "v-model":
                             let model = val;
-                            let curval = self.view[model];
+                            let curval = self.getChild(tempvars, model);
                             nw.value = curval;
                             nw.addEventListener("input", function() {
                                 let newval = nw.value;
                                 if (newval != curval) {
-                                    self.view[model] = newval;
+                                    self.setChild(tempvars, model, newval);
                                 }
                             });
                             checksumstr += "//"+val;
@@ -652,6 +652,62 @@ class VidiView
         let nw = self.cloneElement (orig, tempvars);
         if (hide) nw.style.display = "none";
         into.appendChild (nw);
+    }
+    
+    // ------------------------------------------------------------------------
+    // Get a child node of an object by an index with a possible dot, i.e
+    // getChild ({foo:{bar:42}}, "foo.bar") returns 42.
+    // ------------------------------------------------------------------------
+    getChild (obj, index) {
+        let self = this;
+        let get = function (obj, index) {
+            if (index.indexOf('.')<0) return obj[index];
+            let keys = index.split('.');
+            let crsr = obj;
+            for (let key of keys) {
+                crsr = crsr[key];
+                if (! crsr) {
+                    return crsr;
+                }
+            }
+            console.log ("---> ", crsr);
+            return crsr;
+        }
+        
+        let res = get (obj,index);
+        if (res === undefined) {
+            return get (self.view, index);
+        }
+        return res;
+    }
+    
+    setChild (obj, index, value) {
+        let self = this;
+        if (index.indexOf('.')<0) {
+            if (obj[index] === undefined) {
+                self.view[index] = value;
+            }
+            else {
+                obj[index] = value;
+            }
+            return;
+        }
+        
+        let keys = index.split('.');
+        let crsr = obj;
+        
+        if (crsr[keys[0]] === undefined) {
+            crsr = self.view;
+        }
+        
+        for (let i=0; i<keys.length-1; ++i) {
+            crsr = crsr[keys[i]];
+            if (crsr === undefined) {
+                Vidi.warn ("Could not update "+index);
+                return;
+            }
+        }
+        crsr[keys.slice(-1)] = value;
     }
     
     // ------------------------------------------------------------------------
