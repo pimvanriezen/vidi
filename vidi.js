@@ -937,7 +937,7 @@ class VidiComponent {
             let inattr = elm.getAttribute (a);
             let defattr = def.attributes[a];
             if (defattr == Vidi.Attribute.REQUIRED && !inattr) {
-                console.warn ("[Vidi] Found '"+self.$name+"' element with "+
+                console.warn ("[Vidi] Found <"+self.$name+"> element with "+
                               "missing required attribute '"+attr+"'",
                               elm);
             }
@@ -954,15 +954,20 @@ class VidiComponent {
             for (let tchild of elm.childNodes) {
                 if (! tchild.getAttribute) continue;
                 let childtype = tchild.tagName.toLowerCase();
+                if (def.children[childtype] === undefined) {
+                    throw new Error("Child of type <"+childtype+"> is not "+
+                                    "defined for component <"+self.$name+">");
+                }
                 let newchild = { type:childtype, attr:{}, innerhtml:"" };
                 for (let cattr in def.children[childtype]) {
                     let attr = tchild.getAttribute (cattr);
                     if (! attr) {
                         let c = def.children[childtype][cattr];
                         if (c == Vidi.Attribute.REQUIRED) {
-                            Vidi.warn ("Instance of component '"+self.$name+
-                                       "' missing required <"+childtype+"> "+
-                                       "child attribute '"+cattr+"'");
+                            Vidi.warn ("Instance of component <"+self.$name+
+                                       "> missing required attribute '"+
+                                       cattr+"' for child element of type "+
+                                       "<"+childtype+">");
                         }
                     }
                     else {
