@@ -840,9 +840,14 @@ class VidiView
                 let rsplit = split[0].split(",");
                 let indexvar = null;
                 let loopvar = rsplit[0];
+                let countvar = null;
                 
                 if (rsplit.length > 1) {
                     indexvar = rsplit[1];
+                }
+                
+                if (rsplit.length > 2) {
+                    countvar = rsplit[2];
                 }
                 
                 let data = self.eval(loopval, tempvars);
@@ -850,6 +855,7 @@ class VidiView
                 for (let i in data) {
                     let tv = Vidi.copy(tempvars);
                     if (indexvar) tv[indexvar] = i;
+                    if (countvar) tv[countvar] = index++;
                     tv[loopvar] = data[i];
                     self.appendClone (into, orig, tv, hide);
                 }
