@@ -472,8 +472,14 @@ class VidiView
                     let vinstance = orig.getAttribute ("v-instance");
                     if (vinstance) {
                         let instance = Vidi.instances[vcomp][vinstance];
-                        instance.view = self.view;
-                        instance.render = function() { self.render(); };
+                        if (! instance.view) {
+                            instance.view = self.view;
+                            instance.render = function() { self.render(); };
+                            if (instance.functions &&
+                                instance.functions.construct) {
+                                instance.functions.construct(instance);
+                            }
+                        }
                         tempvars["$instance"] = instance;
                     }
                 }
@@ -1289,6 +1295,17 @@ Vidi.uuidv4 = function() {
         var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
+}
+
+Vidi.accessKey = function(obj, key) {
+    if (key.indexOf('.')<0) return obj[key];
+    let crsr = obj;
+    let keys = key.split('.');
+    for (let k of keys) {
+        crsr = crsr[k];
+        if (! crsr) return crsr;
+    }
+    return crsr;
 }
 
 // ============================================================================
