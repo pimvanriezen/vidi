@@ -299,6 +299,18 @@ class VidiView
         }
     }
 
+    parseMoustache (str, tempvars) {
+        let res = str.replace(/{{\s?([^}]*)\s?}}/g,function(m) {
+            let src = m.substr(2,m.length-4);
+            let res = self.eval(src,tempvars);
+            if (res === null || res === undefined) return res;
+            if (typeof (res) != "object") return res;
+            Vidi.warn ("[Vidi] got an object when evaluating {{"+
+                       src + "}}");
+            return "[Object]";
+        });
+    }
+    
     // ------------------------------------------------------------------------
     // Renders the view out into a DOM tree
     // ------------------------------------------------------------------------
@@ -503,11 +515,7 @@ class VidiView
                             let evname = a.substr(5);
                             let ontv = Vidi.copy (tempvars);
                             if (val.indexOf('{{') >= 0) {
-                                val = val.replace(/{{\s?([^}]*)\s?}}/g,
-                                  function(m) {
-                                  let src = m.substr(2,m.length-4);
-                                  return self.eval(src, tempvars);
-                                });
+                                val = self.parseMoustache (val, tempvars);
                             }
 
                             checksumstr += "//" + val;
@@ -525,11 +533,7 @@ class VidiView
                             let bindto = a.substr(7);
                             
                             if (val.indexOf('{{') >= 0) {
-                                val = val.replace(/{{\s?([^}]*)\s?}}/g,
-                                  function(m) {
-                                  let src = m.substr(2,m.length-4);
-                                  return self.eval(src, tempvars);
-                                });
+                                val = self.parseMoustache (val, tempvars);
                             }
                             
                             val = self.eval (val, tempvars);
@@ -574,10 +578,7 @@ class VidiView
                 }
                 
                 if (val.startsWith("{{")) {
-                    val = val.replace(/{{\s?([^}]*)\s?}}/g,function(m) {
-                      let src = m.substr(2,m.length-4);
-                      return self.eval(src, tempvars);
-                    });
+                    val = self.parseMoustache (val, tempvars);
                 }
                 nw.setAttribute (a, val);
             }
@@ -611,10 +612,7 @@ class VidiView
         if (! orig.childElementCount) {
             let text = orig.textContent;
             if (text) {
-                text = text.replace(/{{\s?([^}]*)\s?}}/g,function(m) {
-                  let src = m.substr(2,m.length-4);
-                  return self.eval(src, tempvars);
-                });
+                text = self.parseMoustache (text, tempvars);
                 nw.textContent = text;
             }
         }
@@ -785,15 +783,7 @@ class VidiView
             let text = orig.textContent;
             if (text) {
                 try {
-                    text = text.replace(/{{\s?([^}]*)\s?}}/g,function(m) {
-                      let src = m.substr(2,m.length-4);
-                      let res = self.eval(src,tempvars);
-                      if (res === null || res === undefined) return res;
-                      if (typeof (res) != "object") return res;
-                      Vidi.warn ("[Vidi] got an object when evaluating {{"+
-                                 src + "}}");
-                      return "[Object]";
-                    });
+                    text = self.parseMoustache (text, tempvars);
                 }
                 catch (e) {
                     Vidi.warn("replacetext: "+text);
