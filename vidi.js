@@ -752,6 +752,9 @@ class VidiView
             if (loopfor) {
                 let split = loopfor.split(" in ");
                 let loopval = split[1];
+                if (split[0].startsWith('(')) {
+                    split[0] = split[0].substr(1,split[0].length-2);
+                }
                 let rsplit = split[0].split(",");
                 let indexvar = null;
                 let loopvar = rsplit[0];
