@@ -587,6 +587,7 @@ class VidiView
                         // of a component. Keep it around because it makes
                         // debugging the element tree much simpler.    
                         case "v-component":
+                        case "v-static":
                             nw.setAttribute (a, val);
                             break;
                             
@@ -732,6 +733,11 @@ class VidiView
         if (left.tagName != right.tagName) {
             return false;
         }
+
+        if (left.getAttribute && left.getAttribute ("v-static")) {
+            return true;
+        }
+        
         if (left.childNodes.length != right.childNodes.length) {
             return false;
         }
@@ -788,6 +794,9 @@ class VidiView
         let self = this;
         
         if (! isroot) {
+            if (into.getAttribute && into.getAttribute ("v-static")) {
+                return;
+            }
             if (! self.compareNodes (into, from)) {
                 if (from.parentNode) {
                     // We swap out the original for an inferior clone, so we
