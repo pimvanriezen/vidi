@@ -554,7 +554,10 @@ class VidiView
                             checksumstr += "//" + val;
                             nw.addEventListener(evname, function(e) {
                                 ontv["$event"] = e;
-                                self.eval(val, ontv, true);
+                                let r = self.eval(val, ontv, true);
+                                if (typeof (r) == "function") {
+                                    r(e);
+                                }
                             });
                             break;
                          
