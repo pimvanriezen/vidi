@@ -461,6 +461,7 @@ class VidiView
         let self = this;
         let nw = document.createElement(orig.tagName);
         let innerhtml = null;
+        let setvalue = null;
         
         if (orig.getAttribute) {
             let vcomp = orig.getAttribute("v-component");
@@ -508,8 +509,12 @@ class VidiView
                         case "v-model":
                             let model = val;
                             let curval = self.getChild(tempvars, model);
-                            nw.value = curval;
-                            nw.addEventListener("input", function() {
+                            setvalue = curval;
+                            let evid = "input";
+                            if (orig.tagName == "SELECT") {
+                                evid = "change"
+                            }
+                            nw.addEventListener(evid, function() {
                                 let newval = nw.value;
                                 if (newval != curval) {
                                     self.setChild(tempvars, model, newval);
@@ -643,6 +648,8 @@ class VidiView
                 nw.textContent = text;
             }
         }
+        
+        if (setvalue) nw.value = setvalue;
         return nw;
     }
     
