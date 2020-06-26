@@ -325,6 +325,7 @@ class VidiView
     // ------------------------------------------------------------------------
     render() {
         let self = this;
+        if (self.$renderlock) return;
 
         if (self.renderedOnce) {
             try {
@@ -335,7 +336,6 @@ class VidiView
                               self.$id+"':",e);
             }
         }
-        if (self.renderTimeout) return;
         
         let dorender = function() {
             if (Vidi.debug) {
@@ -371,13 +371,26 @@ class VidiView
         else {
             if (self.renderTimeout) {
                 clearTimeout (self.renderTimeout);
-                if (Vidi.debug) console.log ("render postponed");
+                if (Vidi.debug) console.log ("[Vidi] render postponed");
             }
             self.renderTimeout = setTimeout (function() {
                 clearTimeout (self.renderTimeout);
                 delete self.renderTimeout;
                 dorender();
-            }, 5 /* 100fps max, change to 7 for 144Hz support ;) */);
+            }, 0 /* 100fps max, change to 7 for 144Hz support ;) */);
+        }
+    }
+    
+    lock() {
+        let self = this;
+        self.$renderlock = true;
+    }
+    
+    unlock() {
+        let self = this;
+        if (self.$renderlock) {
+            self.$renderlock = false;
+            self.render();
         }
     }
     
