@@ -515,6 +515,7 @@ class VidiView
                                 evid = "change"
                             }
                             nw.addEventListener(evid, function() {
+                                let curval = self.getChild(tempvars, model);
                                 let newval = nw.value;
                                 if (newval != curval) {
                                     self.setChild(tempvars, model, newval);
@@ -718,7 +719,7 @@ class VidiView
                 return;
             }
         }
-        crsr[keys.slice(-1)] = value;
+        crsr[keys.slice(-1)[0]] = value;
     }
     
     // ------------------------------------------------------------------------
