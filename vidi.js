@@ -546,7 +546,7 @@ class VidiView
                         // on an element.
                         case "v-on":
                             let evname = a.substr(5);
-                            let ontv = Vidi.copy (tempvars);
+                            let ontv = tempvars;
                             if (val.indexOf('{{') >= 0) {
                                 val = self.parseMoustache (val, tempvars);
                             }
