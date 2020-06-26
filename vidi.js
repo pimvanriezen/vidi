@@ -519,7 +519,7 @@ class VidiView
                                   // with unique event listeners.
             for (let a of orig.getAttributeNames()) {
                 let val = orig.getAttribute (a);
-                
+                if (a.startsWith(":")) a = "v-bind"+a;
                 // Vidi-specific attributes
                 if (a.startsWith("v-")) {
                     // Handle the v-model property
