@@ -837,6 +837,14 @@ class VidiView
                 return;
             }
             if (! self.compareNodes (into, from)) {
+                let hasfocus = false;
+                if (into == document.activeElement) {
+                    hasfocus = true;
+                }
+                if (Vidi.debug) {
+                    console.log ("[Vidi] replace: ",into);
+                    console.log ("[Vidi] with: ",from);
+                }
                 if (from.parentNode) {
                     // We swap out the original for an inferior clone, so we
                     // can keep its event listeners, but don't mess up the
@@ -846,6 +854,7 @@ class VidiView
                     from.parentNode.replaceChild (sup, from);
                 }
                 into.parentNode.replaceChild (from, into);
+                if (hasfocus) from.focus();
                 return;
             }
         }
