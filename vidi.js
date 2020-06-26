@@ -766,8 +766,19 @@ class VidiView
             return true;
         }
         
-        if (left.childNodes.length != right.childNodes.length) {
-            return false;
+        let ll = left.childNodes.length;
+        let rl = right.childNodes.length;
+        
+        if (ll < rl) {
+            if (! ll) return false;
+            while (left.childNodes.length < rl) {
+                left.appendChild(document.createElement("div"));
+            }
+        }
+        else if (ll > rl) {
+            while (left.childNodes.length < rl) {
+                left.removeChild(left.lastChild);
+            }
         }
 
         if (! left.childElementCount) {
