@@ -363,11 +363,15 @@ class VidiView
         
         if (! self.renderedOnce) dorender();
         else {
+            if (self.renderTimeout) {
+                clearTimeout (self.renderTimeout);
+                if (Vidi.debug) console.log ("render postponed");
+            }
             self.renderTimeout = setTimeout (function() {
                 clearTimeout (self.renderTimeout);
                 delete self.renderTimeout;
                 dorender();
-            }, 10 /* 100fps max, change to 7 for 144Hz support ;) */);
+            }, 5 /* 100fps max, change to 7 for 144Hz support ;) */);
         }
     }
     
