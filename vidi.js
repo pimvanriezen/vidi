@@ -509,14 +509,28 @@ class VidiView
                         case "v-model":
                             let model = val;
                             let curval = self.getChild(tempvars, model);
+                            let inputtype = null;
                             setvalue = curval;
                             let evid = "input";
                             if (orig.tagName == "SELECT") {
-                                evid = "change"
+                                evid = "change";
+                            }
+                            if (orig.tagName == "INPUT") {
+                                inputtype = orig.getAttribute("type");
+                                if (inputtype) {
+                                    inputtype = inputtype.toLowerCase();
+                                }
+                                if (inputtype == "checkbox" ||
+                                    inputtype == "radio") {
+                                    evid = "change";
+                                }
                             }
                             nw.addEventListener(evid, function() {
                                 let curval = self.getChild(tempvars, model);
                                 let newval = nw.value;
+                                if (inputtype == "checkbox") {
+                                    newval = (newval == "on") ? true : false;
+                                }
                                 if (newval != curval) {
                                     self.setChild(tempvars, model, newval);
                                 }
