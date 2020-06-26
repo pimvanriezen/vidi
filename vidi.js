@@ -89,6 +89,12 @@ class NestProxy {
             subtree = this.subtrees[prop] = {p:p,dp:dp};
         }
         
+        for (let oldk in subtree.p) {
+            if (value[oldk] === undefined) {
+                subtree.dp.deleteProperty (obj, oldk);
+            }
+        }
+        
         for (let k in value) {
             subtree.dp.setProperty (obj, k, value[k]);
         }
