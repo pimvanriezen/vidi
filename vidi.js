@@ -646,10 +646,16 @@ class VidiView
             if (checksumstr.length) {
                 let tv = {};
                 for (let key in tempvars) {
-                    if (! key.startsWith('$')) tv[key] = tempvars[key];
+                    if (! key.startsWith('$')) {
+                        tv[key] = tempvars[key];
+                    }
                 }
                 checksumstr += "//" + JSON.stringify(tv);
-                nw.setAttribute ("v-eventid", Vidi.checksum(checksumstr));
+                let checksum = Vidi.checksum(checksumstr);
+                if (Vidi.debug) {
+                    console.log ("[Vidi] event-id "+checksum+": "+checksumstr);
+                }
+                nw.setAttribute ("v-eventid", checksum);
             }
         }
         
@@ -732,7 +738,7 @@ class VidiView
         if (crsr[keys[0]] === undefined) {
             crsr = self.view;
         }
-        
+
         for (let i=0; i<keys.length-1; ++i) {
             crsr = crsr[keys[i]];
             if (crsr === undefined) {
