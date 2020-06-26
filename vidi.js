@@ -790,12 +790,14 @@ class VidiView
         
         if (ll < rl) {
             if (! ll) return false;
+            if (ll > 100) return false;
             while (left.childNodes.length < rl) {
                 left.appendChild(document.createElement("div"));
             }
         }
         else if (ll > rl) {
-            while (left.childNodes.length < rl) {
+            if (ll > 100) return false;
+            while (left.childNodes.length > rl) {
                 left.removeChild(left.lastChild);
             }
         }
