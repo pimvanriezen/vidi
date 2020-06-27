@@ -179,6 +179,7 @@ class VidiView
         // Set up private variables
         self.$ = self.querySelector;
         self.$id = id;
+        self.$loopcache = {};
         
         self.$data = Vidi.clone (model);
         self.$el = null;
@@ -729,6 +730,7 @@ class VidiView
         let nw = self.cloneElement (orig, tempvars);
         if (hide) nw.style.display = "none";
         into.appendChild (nw);
+        return nw;
     }
     
     // ------------------------------------------------------------------------
@@ -963,13 +965,30 @@ class VidiView
                 }
                 
                 let data = self.eval(loopval, tempvars);
+                let datachk = Vidi.checksum (data);
+                
+                if (self.$loopcache[loopfor]) {
+                    let cache = self.$loopcache[loopfor];
+                    if (cache.datachk == datachk) {
+                        for (let elm of cache.elements) {
+                            into.appendChild (elm);
+                        }
+                        return;
+                    }
+                }
+                self.$loopcache[loopfor] = {
+                    datachk:datachk,
+                    elements:[]
+                }
+                
                 let index=0;
                 for (let i in data) {
                     let tv = Vidi.copy(tempvars);
                     if (indexvar) tv[indexvar] = i;
                     if (countvar) tv[countvar] = index++;
                     tv[loopvar] = data[i];
-                    self.appendClone (into, orig, tv, hide);
+                    let elm = self.appendClone (into, orig, tv, hide);
+                    self.$loopcache[loopfor].elements.push (elm);
                 }
             }
             else {
@@ -1422,7 +1441,10 @@ Vidi.accessKey = function(obj, key) {
 // EventListeners for a DOM node, to keep track of unique combinations of
 // event handling code fragments and closure data.
 // ============================================================================
-Vidi.checksum = function(s) {
+Vidi.checksum = function(str) {
+    let s = str;
+    if (typeof (s) == "object") s = JSON.stringify(s);
+    if (typeof (s) != "string") s = String(s);
     let hash=0;
     for (let i=0; i < s.length; i++) {
       let chr = s.charCodeAt(i);
