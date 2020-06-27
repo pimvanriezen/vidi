@@ -179,7 +179,6 @@ class VidiView
         // Set up private variables
         self.$ = self.querySelector;
         self.$id = id;
-        self.$loopcache = {};
         
         self.$data = Vidi.clone (model);
         self.$el = null;
@@ -968,22 +967,6 @@ class VidiView
                 }
                 
                 let data = self.eval(loopval, tempvars);
-                let datachk = Vidi.checksum (data);
-                
-                if (self.$loopcache[loopfor]) {
-                    let cache = self.$loopcache[loopfor];
-                    if (cache.datachk == datachk) {
-                        for (let elm of cache.elements) {
-                            into.appendChild (elm);
-                        }
-                        return;
-                    }
-                }
-                self.$loopcache[loopfor] = {
-                    datachk:datachk,
-                    elements:[]
-                }
-                
                 let index=0;
                 for (let i in data) {
                     let tv = Vidi.copy(tempvars);
@@ -991,7 +974,6 @@ class VidiView
                     if (countvar) tv[countvar] = index++;
                     tv[loopvar] = data[i];
                     let elm = self.appendClone (into, orig, tv, hide);
-                    self.$loopcache[loopfor].elements.push (elm);
                 }
             }
             else {
