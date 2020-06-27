@@ -890,6 +890,12 @@ class VidiView
             if (! self.compareNodes (into, from)) {
                 let hasfocus = false;
                 if (into == document.activeElement) {
+                    if (into.tagName == "INPUT" || into.tagName == "TEXTAREA") {
+                        if (into.value != from.value) {
+                            into.value = from.value;
+                        }
+                        return;
+                    }
                     hasfocus = true;
                 }
                 if (Vidi.debug) {
