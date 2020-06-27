@@ -326,8 +326,9 @@ class VidiView
     // ------------------------------------------------------------------------
     // Renders the view out into a DOM tree
     // ------------------------------------------------------------------------
-    render() {
+    render(tmo) {
         let self = this;
+        let timeout = tmo ? tmo : 0;
         if (self.$renderlock) return;
 
         if (self.renderedOnce) {
@@ -380,7 +381,7 @@ class VidiView
                 clearTimeout (self.renderTimeout);
                 delete self.renderTimeout;
                 dorender();
-            }, 0 /* 100fps max, change to 7 for 144Hz support ;) */);
+            }, timeout /* 100fps max, change to 7 for 144Hz support ;) */);
         }
     }
     
@@ -389,11 +390,11 @@ class VidiView
         self.$renderlock = true;
     }
     
-    unlock() {
+    unlock(norender) {
         let self = this;
         if (self.$renderlock) {
             self.$renderlock = false;
-            self.render();
+            if (! norender) self.render();
         }
     }
     
@@ -575,7 +576,8 @@ class VidiView
                                 if (newval != curval) {
                                     self.lock();
                                     self.setChild(tempvars, model, newval);
-                                    self.unlock();
+                                    self.unlock(true);
+                                    self.render(50);
                                 }
                             });
                             checksumstr += "//"+val;
