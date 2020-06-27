@@ -574,10 +574,10 @@ class VidiView
                                 }
                                     
                                 if (newval != curval) {
-                                    self.lock();
+                                    //self.lock();
                                     self.setChild(tempvars, model, newval);
-                                    self.unlock(true);
-                                    self.render(50);
+                                    //self.unlock(true);
+                                    //self.render(50);
                                 }
                             });
                             checksumstr += "//"+val;
