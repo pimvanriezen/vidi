@@ -801,8 +801,9 @@ class VidiView
             return false;
         }
 
-        if (left.getAttribute && left.getAttribute ("v-static")) {
-            return true;
+        if (left.getAttribute) {
+            let vstatic = left.getAttribute ("v-static");
+            if (vstatic == "keep") return true;
         }
         
         let ll = left.childNodes.length;
@@ -874,13 +875,13 @@ class VidiView
         let self = this;
         
         if (! isroot) {
-            if (into.getAttribute && into.getAttribute ("v-static")) {
+            if (into.getAttribute) {
                 let vstatic = into.getAttribute("v-static");
                 if (vstatic == "keep") return;
                 if (vstatic == "non-interactive") {
-                    into = from;//.cloneNode(true);
+                    into.parentNode.replaceChild (from, into);
+                    return;
                 }
-                return;
             }
             
             if (! self.compareNodes (into, from)) {
