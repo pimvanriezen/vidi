@@ -870,8 +870,14 @@ class VidiView
         
         if (! isroot) {
             if (into.getAttribute && into.getAttribute ("v-static")) {
+                let vstatic = into.getAttribute("v-static");
+                if (vstatic == "keep") return;
+                if (vstatic == "non-interactive") {
+                    into = from;//.cloneNode(true);
+                }
                 return;
             }
+            
             if (! self.compareNodes (into, from)) {
                 let hasfocus = false;
                 if (into == document.activeElement) {
