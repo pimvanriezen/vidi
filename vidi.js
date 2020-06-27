@@ -546,6 +546,15 @@ class VidiView
                                 if (inputtype == "checkbox" ||
                                     inputtype == "radio") {
                                     evid = "change";
+                                    if (inputtype == "radio") {
+                                        setvalue = orig.value;
+                                        if (setvalue == curval) {
+                                            nw.setAttribute("checked","");
+                                        }
+                                        else {
+                                            nw.removeAttribute("checked");
+                                        }
+                                    }
                                 }
                             }
                             nw.addEventListener(evid, function() {
@@ -554,6 +563,12 @@ class VidiView
                                 if (inputtype == "checkbox") {
                                     newval = (newval == "on") ? true : false;
                                 }
+                                else if (inputtype == "radio") {
+                                    newval = this.checked ?
+                                             this.value :
+                                             curval;
+                                }
+                                    
                                 if (newval != curval) {
                                     self.setChild(tempvars, model, newval);
                                 }
