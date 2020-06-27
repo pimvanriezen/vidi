@@ -64,7 +64,7 @@ class NestProxy {
     // ------------------------------------------------------------------------
     // Callback from the proxy object for setting a property
     // ------------------------------------------------------------------------
-    setProperty(obj, prop, value) {
+    setProperty(obj, prop, value, ignore, ischild) {
         let isobj = (typeof (value) == "object");
         if (isobj && (value === null || value === undefined ||
             Array.isArray (value))) {
@@ -78,6 +78,10 @@ class NestProxy {
         while (robj.parent) robj = robj.parent;
         
         if (! isobj) {
+            if (ischild) {
+                this.target[prop] = value;
+                return true;
+            }
             return this.handler.setPath (robj.target, this.keypath(prop), value);
         }
 
@@ -89,14 +93,13 @@ class NestProxy {
             subtree = this.subtrees[prop] = {p:p,dp:dp};
         }
         
-        for (let oldk in subtree.p) {
-            if (value[oldk] === undefined) {
-                subtree.dp.deleteProperty (obj, oldk);
-            }
+        for (let k in value) {
+            subtree.dp.setProperty (obj, k, value[k], null, true);
         }
         
-        for (let k in value) {
-            subtree.dp.setProperty (obj, k, value[k]);
+        if (! ischild) {
+            this.target[prop] = value;
+            return this.handler.setPath (robj.target, this.keypath(prop), value);
         }
         return true;
     }
