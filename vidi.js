@@ -574,7 +574,9 @@ class VidiView
                                 }
                                     
                                 if (newval != curval) {
+                                    self.lock();
                                     self.setChild(tempvars, model, newval);
+                                    self.unlock();
                                 }
                             });
                             checksumstr += "//"+val;
