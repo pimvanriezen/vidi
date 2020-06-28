@@ -490,12 +490,14 @@ class VidiView
         let innerhtml = null;
         let setvalue = null;
         
+        
         if (orig.getAttribute) {
             let vcomp = orig.getAttribute("v-component");
 
             if (vcomp) {
                 let component = Vidi.components[vcomp];
                 if (component) {
+                    tempvars = Vidi.copy (tempvars);
                     tempvars["$component"] = component.functions;
                     let vinstance = orig.getAttribute ("v-instance");
                     if (vinstance) {
@@ -1020,63 +1022,19 @@ class VidiComponent {
         
         let self = this;
         
-        self.finalize = function() {
-            Vidi.components[name] = {
-                "$name": self.$name,
-                "$def": self.$def,
-                "$template": self.$template,
-                "functions": self.functions,
-                "view": null,
-                "render": function() {
-                    throw new Error("render() called on unbound instance");
-                }
-            }
-
-            if (document.readyState === "complete") {
-                self.render();
-            }
-            else {
-                window.addEventListener("load",function() {
-                    self.render();
-                });
-            }
-            
-            if (Vidi.$waiting[name] !== undefined) {
-                for (let obj of Vidi.$waiting[name]) {
-                    obj.unwait (name);
-                }
-                delete Vidi.$waiting[name];
+        Vidi.components[name] = {
+            "$name": self.$name,
+            "$def": self.$def,
+            "$template": self.$template,
+            "functions": self.functions,
+            "view": null,
+            "renderElement":function(root,ctx) {
+                return self.renderElement(root,ctx);
+            },
+            "render": function() {
+                throw new Error("render() called on unbound instance");
             }
         }
-        
-        if (def.requires && def.requires.length) {
-            self.waiting = {};
-            for (let req of def.requires) {
-                if (Vidi.components[req] === undefined) {
-                    self.waiting[req] = true;
-                    if (Vidi.$waiting[req] === undefined) {
-                        Vidi.$waiting[req] = [];
-                    }
-                    Vidi.$waiting[req].push (this);
-                }
-            }
-            if (Object.keys(self.waiting).length == 0) {
-                self.finalize();
-            }
-        }
-        else {
-            self.finalize();
-        }
-    }
-    
-    unwait(requirement) {
-        let self = this;
-        self.waiting[requirement] = false;
-        for (let req in self.waiting) {
-            if (self.waiting[req]) return;
-        }
-        
-        self.finalize();
     }
     
     // ------------------------------------------------------------------------
@@ -1095,7 +1053,7 @@ class VidiComponent {
     // ------------------------------------------------------------------------
     // Render out a top level element
     // ------------------------------------------------------------------------
-    renderElement(elm) {
+    renderElement(elm,context) {
         let self = this;
         let def = self.$def;
         
@@ -1152,13 +1110,25 @@ class VidiComponent {
         let div = document.createElement ("div");
         let inner = elm.innerHTML;
         div.innerHTML = self.$template;
-        self.fixAttributes (div, attr, def.functions, inner, null, children);
+        let ctx = Vidi.copy(context);
+        self.fixAttributes (div, attr, def.functions, inner, ctx, children);
+        context.exports = ctx.exports;
         
         for (let a in def.attributes) {
             let defattr = def.attributes[a];
             if (defattr == Vidi.Attribute.COPY) {
                 if (elm.getAttribute(a)) {
                     div.firstChild.setAttribute(a, elm.getAttribute(a));
+                }
+            }
+            else if (defattr == Vidi.Attribute.EXPORT) {
+                if (elm.getAttribute(a)) {
+                    if (! context.exports) context.exports = {};
+                    context.exports[a] = elm.getAttribute(a);
+                }
+                else {
+                    if (! context.exports) context.exports = {};
+                    context.exports[a] = "";
                 }
             }
         }
@@ -1172,21 +1142,18 @@ class VidiComponent {
         if (! Vidi.instances[self.$name]) {
             Vidi.instances[self.$name] = {};
         }
+        
         Vidi.instances[self.$name][instanceid] = { 
             attr: attr,
             children: children,
             state: {},
-            functions: self.functions
+            functions: self.functions,
+            exports: context.exports,
+            $el: div.firstChild
         };
         
-        // Render out any other components in our requires[] list, since
-        // we just created these out of thin air.
-        if (def.requires) {
-            for (let req of def.requires) {
-                Vidi.components[req].render (div);
-            }
-        }
-        
+        let firstElement = div.childNodes[0];
+
         for (let i=0; i<div.childNodes.length; ++i) {
             let node = div.childNodes[i];
             
@@ -1199,6 +1166,7 @@ class VidiComponent {
         }
         
         elm.parentNode.removeChild (elm);
+        return firstElement;
     }
     
     // ------------------------------------------------------------------------
@@ -1213,7 +1181,7 @@ class VidiComponent {
             for (let a of node.getAttributeNames()) {
                 let val = node.getAttribute(a);
                 if (a == "component-if") {
-                    if (! self.eval (val, attr, funcs, inner, null, children)) {
+                    if (! self.eval (val, attr, funcs, inner, tempvars, children)) {
                         node.parentNode.removeChild (node);
                         return;
                     }
@@ -1224,7 +1192,7 @@ class VidiComponent {
                     let split = val.split(" in ");
                     let splitvar = split[0];
                     let splitindex = null;
-                    let tv = {};
+                    let tv = Vidi.copy(tempvars);
                     
                     if (splitvar.indexOf(",") > 0) {
                         let tuple = splitvar.split(",");
@@ -1245,6 +1213,8 @@ class VidiComponent {
                         
                         self.fixAttributes (nw, attr, funcs, inner,
                                             tv, children);
+                        
+                        tempvars.exports = tv.exports;
                         
                         if (nextSibling) {
                             parentNode.insertBefore(nw,nextSibling);
@@ -1320,10 +1290,10 @@ class VidiComponent {
     // ------------------------------------------------------------------------
     // Execute a render function defined for the template.
     // ------------------------------------------------------------------------
-    eval (txt, attr, func, inner, tempvars, children) {
+    eval (txt, attr, func, inner, tempvars, children, context) {
         let self = this;
         let src = "(function(){ "+
-                  "return function(attr,func,innerhtml,children,__tmp) {";
+                  "return function(attr,func,innerhtml,children,context,__tmp) {";
         for (let fid in func) {
             src += "var "+fid+" = func."+fid+";";
         }
@@ -1335,7 +1305,7 @@ class VidiComponent {
         src += "}})()";
         
         try {
-            return eval(src)(attr,func,inner,children, tempvars);
+            return eval(src)(attr,func,inner,children,context,tempvars);
         }
         catch (e) {
             Vidi.warn ("Parse error in component '"+self.name+"': "+e);
@@ -1355,7 +1325,8 @@ Vidi = {
         OPTIONAL: 1,
         REQUIRED: 2,
         COPY: 3,
-        STRIP: 4
+        STRIP: 4,
+        EXPORT: 5
     },
     instances:{},
     components:{},
@@ -1449,9 +1420,39 @@ Vidi.checksum = function(str) {
     return code.substr(0,4) + "-" + code.substr(4);
 }
 
+Vidi.renderComponents = function(root, context) {
+    let crsr = root;
+    if (! crsr) crsr = document;
+    if (! context) context = {};
+    
+    if (crsr.tagName) {
+        let id = crsr.tagName.toLowerCase();
+        if (crsr.getAttribute ("v-instance")) return;
+        if (Vidi.components[id] !== undefined) {
+            crsr = Vidi.components[id].renderElement (crsr, context);
+        }
+    }
+    if (! crsr.childNodes) return;
+    
+    let children = [];
+    for (let ch of crsr.childNodes) {
+        Vidi.renderComponents (ch, context);
+    }
+}
+
 // ============================================================================
 // Log helper
 // ============================================================================
 Vidi.warn = function(str) {
     console.warn ("[Vidi] "+str);
+}
+
+if (document.readyState === "complete") {
+    Vidi.renderComponents (document);
+}
+else {
+    let self = this;
+    window.addEventListener("load",function() {
+        Vidi.renderComponents (document);
+    });
 }

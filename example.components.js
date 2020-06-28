@@ -235,7 +235,8 @@ new Vidi.Component("v-textinput", {
             <label for="{{attr.id}}">{{innerhtml}}</label>
             <input      name="{{attr.id}}" spellcheck="false"
                    v-on:keyup="$component.keyUp($instance,$event)"
-                      v-model="{{attr.id}}"/>
+                      v-model="{{attr.id}}"
+                   v-on:input="{{exports.cb}}"/>
         </div>
     `,
     functions:{
@@ -255,7 +256,8 @@ new Vidi.Component("v-textinput", {
 // ============================================================================
 new Vidi.Component("v-form", {
     attributes:{
-        "id":Vidi.Attribute.COPY
+        "id":Vidi.Attribute.COPY,
+        "cb":Vidi.Attribute.EXPORT
     },
     template:`
         <form action="javascript:void(0);">
