@@ -228,7 +228,8 @@ new Vidi.Component("v-view", {
 // ============================================================================
 new Vidi.Component("v-textinput", {
     attributes:{
-        "id":Vidi.Attribute.REQUIRED
+        "id":Vidi.Attribute.REQUIRED,
+        "cb":Vidi.Attribute.IMPORT
     },
     template:`
         <div>
@@ -236,7 +237,7 @@ new Vidi.Component("v-textinput", {
             <input      name="{{attr.id}}" spellcheck="false"
                    v-on:keyup="$component.keyUp($instance,$event)"
                       v-model="{{attr.id}}"
-                   v-on:input="{{exports.cb}}"/>
+                   v-on:input="{{attr.cb}}"/>
         </div>
     `,
     functions:{

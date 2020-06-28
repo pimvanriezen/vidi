@@ -1019,6 +1019,8 @@ class VidiComponent {
         this.$def = def;
         this.$template = def.template.replace(/^[ \n]*/, "");
         this.functions = def.functions;
+        this.$def.attributes["v-if"] = Vidi.Attribute.COPY;
+        this.$def.attributes["v-for"] = Vidi.Attribute.COPY;
         
         let self = this;
         
@@ -1065,6 +1067,22 @@ class VidiComponent {
                 console.warn ("[Vidi] Found <"+self.$name+"> element with "+
                               "missing required attribute '"+attr+"'",
                               elm);
+            }
+            
+            if (defattr == Vidi.Attribute.IMPORT && !inattr) {
+                if (context.exports[a]) attr[a] = context.exports[a];
+            }
+            
+            if (defattr == Vidi.Attribute.IMPORTREQUIRED && !inattr) {
+                if (! context.exports[a]) {
+                    console.warn ("[Vidi] Found <"+self.$name+"> element with "+
+                                  "missing required attribute '"+attr+"' either "+
+                                  "directly or from a parent-component",
+                                  elm);
+                }
+                else {
+                    attr[a] = context.exports[a];
+                }
             }
             
             if (inattr) {
@@ -1326,7 +1344,9 @@ Vidi = {
         REQUIRED: 2,
         COPY: 3,
         STRIP: 4,
-        EXPORT: 5
+        EXPORT: 5.
+        IMPORT: 6,
+        IMPORTREQUIRED: 7
     },
     instances:{},
     components:{},
