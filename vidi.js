@@ -1344,7 +1344,7 @@ Vidi = {
         REQUIRED: 2,
         COPY: 3,
         STRIP: 4,
-        EXPORT: 5.
+        EXPORT: 5,
         IMPORT: 6,
         IMPORTREQUIRED: 7
     },
