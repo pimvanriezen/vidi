@@ -976,7 +976,15 @@ class VidiView
                     countvar = rsplit[2];
                 }
                 
-                let data = self.eval(loopval, tempvars);
+                let data;
+                if (!isNaN(parseInt(loopval))) {
+                    let nval = Array.apply (null, {length:loopval})
+                                    .map (Number.call, Number);
+                    data = nval;
+                }
+                else {
+                    data = self.eval(loopval, tempvars);
+                }
                 let index=0;
                 for (let i in data) {
                     let tv = Vidi.copy(tempvars);
