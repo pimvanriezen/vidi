@@ -560,6 +560,7 @@ class VidiView
                                         else {
                                             nw.removeAttribute("checked");
                                         }
+                                        nw.setAttribute("u-debug",Vidi.uuidv4());
                                     }
                                 }
                             }
