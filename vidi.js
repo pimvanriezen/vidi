@@ -555,10 +555,11 @@ class VidiView
                                     if (inputtype == "radio") {
                                         setvalue = orig.value;
                                         if (setvalue == curval) {
-                                            nw.setAttribute("checked","");
+                                            nw.setAttribute ("checked","");
+                                            nw.checked = true;
                                         }
                                         else {
-                                            nw.removeAttribute("checked");
+                                            nw.checked = false;
                                         }
                                         nw.setAttribute("u-debug",Vidi.uuidv4());
                                     }
@@ -805,6 +806,9 @@ class VidiView
         }
         if (left.tagName != right.tagName) {
             return false;
+        }
+        if (left.checked != right.checked) {
+            left.checked = right.checked;
         }
 
         if (left.getAttribute) {
