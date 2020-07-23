@@ -555,11 +555,13 @@ class VidiView
                                     if (inputtype == "radio") {
                                         setvalue = orig.value;
                                         if (setvalue == curval) {
-                                            nw.setAttribute("checked","");
+                                            nw.setAttribute ("checked","");
+                                            nw.checked = true;
                                         }
                                         else {
-                                            nw.removeAttribute("checked");
+                                            nw.checked = false;
                                         }
+                                        nw.setAttribute("u-debug",Vidi.uuidv4());
                                     }
                                 }
                             }
@@ -806,6 +808,9 @@ class VidiView
         if (left.tagName != right.tagName) {
             return false;
         }
+        if (left.checked != right.checked) {
+            left.checked = right.checked;
+        }
 
         if (left.getAttribute) {
             let vstatic = left.getAttribute ("v-static");
@@ -982,7 +987,15 @@ class VidiView
                     countvar = rsplit[2];
                 }
                 
-                let data = self.eval(loopval, tempvars);
+                let data;
+                if (!isNaN(parseInt(loopval))) {
+                    let nval = Array.apply (null, {length:loopval})
+                                    .map (Number.call, Number);
+                    data = nval;
+                }
+                else {
+                    data = self.eval(loopval, tempvars);
+                }
                 let index=0;
                 for (let i in data) {
                     let tv = Vidi.copy(tempvars);
