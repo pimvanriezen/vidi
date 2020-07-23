@@ -577,6 +577,7 @@ class VidiView
                                     
                                 if (newval != curval) {
                                     //self.lock();
+                                    this.setAttribute ("v-edited",1);
                                     self.setChild(tempvars, model, newval);
                                     //self.unlock(true);
                                     //self.render(50);
@@ -833,7 +834,12 @@ class VidiView
         }
         
         if (left.value != right.value) {
-            left.value = right.value;
+            if (left.getAttribute ("v-edited")) {
+                left.removeAttribute ("v-edited");
+            }
+            else {
+                left.value = right.value;
+            }
         }
         
         if (left.nodeType == Node.ELEMENT_NODE) {
@@ -1076,8 +1082,8 @@ class VidiComponent {
             if (defattr == Vidi.Attribute.IMPORTREQUIRED && !inattr) {
                 if (! context.exports[a]) {
                     console.warn ("[Vidi] Found <"+self.$name+"> element with "+
-                                  "missing required attribute '"+attr+"' either "+
-                                  "directly or from a parent-component",
+                                  "missing required attribute '"+attr+"' "+
+                                  "either directly or from a parent-component",
                                   elm);
                 }
                 else {
@@ -1199,7 +1205,8 @@ class VidiComponent {
             for (let a of node.getAttributeNames()) {
                 let val = node.getAttribute(a);
                 if (a == "component-if") {
-                    if (! self.eval (val, attr, funcs, inner, tempvars, children)) {
+                    if (! self.eval (val, attr, funcs, inner, 
+                                     tempvars, children)) {
                         node.parentNode.removeChild (node);
                         return;
                     }
@@ -1310,8 +1317,8 @@ class VidiComponent {
     // ------------------------------------------------------------------------
     eval (txt, attr, func, inner, tempvars, children, context) {
         let self = this;
-        let src = "(function(){ "+
-                  "return function(attr,func,innerhtml,children,context,__tmp) {";
+        let src = "(function(){ return "+
+                  "function(attr,func,innerhtml,children,context,__tmp) {";
         for (let fid in func) {
             src += "var "+fid+" = func."+fid+";";
         }
@@ -1403,7 +1410,8 @@ Vidi.copy = function(obj) {
 // Generate a uuid (used for tracking component instances)
 // ============================================================================
 Vidi.uuidv4 = function() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
+           .replace(/[xy]/g, function(c) {
         var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
